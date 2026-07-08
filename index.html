@@ -114,9 +114,10 @@
   .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .upload-preview-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
-  .chip{border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;
+  .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;
     padding:9px 15px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);
     transition:all .15s ease;font-family:var(--font-body);}
+  .chip svg{flex-shrink:0;}
   .chip:hover,.chip:active{background:var(--ink);border-color:var(--ink);color:#fff;}
   .btn-primary{
     background:var(--ink);color:#fff;border:none;border-radius:16px;
@@ -166,6 +167,11 @@
     font-size:11px;font-weight:600;padding:5px 11px;border-radius:999px;}
   .quote-box{background:var(--surface-alt);border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.55;
     font-family:var(--font-display);font-style:italic;color:var(--text);}
+  .tagged-product{display:flex;align-items:center;gap:12px;padding:2px 0;}
+  .tagged-thumb{width:48px;height:48px;border-radius:12px;background:linear-gradient(160deg,#F1ECFB,#F8F2ED);
+    border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+  .tagged-thumb svg{width:78%;height:78%;}
+  .tagged-name{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-0.01em;line-height:1.2;margin-top:1px;}
   .claim-row{display:flex;flex-direction:column;gap:4px;}
   .claim-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
   .claim-title{font-size:12.5px;font-weight:600;}
@@ -284,7 +290,7 @@
           onkeydown="if(event.key==='Enter'){checkPastedLink();}" />
       </div>
       <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
-      <span class="helpful">Try pasting one of these:</span>
+      <span class="section-label" style="margin-top:6px;">Trending influencers</span>
       <div class="chip-row" id="sampleLinkChips"></div>
     </div>
 
@@ -323,7 +329,7 @@
     <div class="section-label">Top scored by the community</div>
     <div class="hscroll" id="topScoredList"></div>
 
-    <div class="section-label">Or try a trending check</div>
+    <div class="section-label">Trending this week</div>
     <div id="exampleList" style="display:flex;flex-direction:column;gap:10px;"></div>
   </section>
 
@@ -340,7 +346,6 @@
     <div id="claimsBanner"></div>
     <div class="card" id="claimsCard"></div>
 
-    <div class="card" id="evidenceCard"></div>
     <div class="card" id="valueCard"></div>
 
     <div class="row-between">
@@ -602,10 +607,84 @@ const PRODUCTS = {
     review: { name: "Nadia P.", initials: "NP", bg: "#F0997B", fg: "#4A1B0C", rating: 4,
       body: "Felt a bit calmer within a few weeks, but I wouldn't call it life-changing.",
       tag: "Helped", tagTone: "teal", helpful: 11 }
+  },
+  skinnytea: {
+    brand: "LumeWell",
+    name: "Skinny & Glow Detox Tea",
+    price: "£26.00 · 28 servings",
+    priceValue: 26, servings: 28, currency: "£", artShape: "pouch",
+    emoji: "🍵",
+    keywords: ["detox tea", "skinny tea", "skinny & glow", "skinny and glow", "lumewell", "slimming tea"],
+    sourceQuery: "detox slimming tea weight loss senna randomized controlled trial",
+    post: {
+      platform: "TikTok",
+      handle: "@detoxwithdemi",
+      followers: "521K followers",
+      bio: "Bio: \"wellness & weight-loss coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"Sip this for 14 days and watch the bloat AND the weight melt off — code DEMI15\""
+    },
+    score: 26,
+    scoreLabel: "Weak evidence",
+    scoreTone: "red",
+    claims: [
+      { claim: "Melts fat and causes weight loss", verdict: "Weak evidence", tone: "red", confidence: "Low",
+        note: "'Detox' teas act mainly as diuretics and laxatives — the drop on the scale is water weight, not fat, and returns once you rehydrate" },
+      { claim: "Detoxes the body", verdict: "Weak evidence", tone: "red", confidence: "Low",
+        note: "A healthy liver and kidneys already clear waste — no peer-reviewed evidence shows a tea adds any detox benefit" }
+    ],
+    avgRating: 2.6,
+    reviewCount: 58,
+    barPcts: [14, 15, 22, 24, 25],
+    review: { name: "Chloe R.", initials: "CR", bg: "#F5C4B3", fg: "#4A1B0C", rating: 2,
+      body: "Lost a little the first week then it all came back. Mostly just made me run to the loo.",
+      tag: "No lasting change", tagTone: "gray", helpful: 27 }
+  },
+  creatinegummies: {
+    brand: "PeakForm",
+    name: "Creatine Gummy Bears",
+    price: "£24.00 · 30 servings",
+    priceValue: 24, servings: 30, currency: "£", artShape: "jar",
+    emoji: "🐻",
+    keywords: ["creatine gummies", "creatine gummy", "gummy bears", "peakform gummies"],
+    sourceQuery: "creatine monohydrate gummy dose bioavailability strength",
+    post: {
+      platform: "Instagram",
+      handle: "@fitfuel_jess",
+      followers: "215K followers",
+      bio: "Bio: \"fitness & mindset coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"Swapped my creatine powder for these gummies — same gains, way tastier, just add to your morning routine\""
+    },
+    score: 72,
+    scoreLabel: "Backed",
+    scoreTone: "teal",
+    claims: [
+      { claim: "Same results as creatine powder", verdict: "Depends on the dose", tone: "amber", confidence: "Moderate",
+        note: "Creatine is strongly evidenced at 3–5g a day, but gummies often contain just 1–2g per serving — so you may need several to match one scoop of powder" },
+      { claim: "Builds strength and lean muscle", verdict: "Strong evidence", tone: "teal", confidence: "High",
+        note: "Creatine monohydrate is one of the most studied supplements in sport science — with gummies the real question is dose, not whether creatine works" }
+    ],
+    avgRating: 4.0,
+    reviewCount: 47,
+    barPcts: [42, 30, 16, 8, 4],
+    review: { name: "Jess M.", initials: "JM", bg: "#9FE1CB", fg: "#04342C", rating: 4,
+      body: "Tasty and easy to remember — but I checked the label, only 1.5g each, so I take three to hit my usual 5g.",
+      tag: "Check the dose", tagTone: "amber", helpful: 33 }
   }
 };
 
-const TRENDING_IDS = ["collagen", "creatine"];
+// "Trending this week" — a curated spread chosen to show the full range Vera
+// surfaces: a weakly-evidenced detox tea, a mixed-evidence collagen, and a
+// well-backed creatine. `tone` drives the score-pill colour (red = weak,
+// amber = mixed, teal = backed). `id` maps to the curated product opened on tap.
+const TRENDING_WEEK = [
+  { id: "skinnytea", name: "Skinny & Glow Tea",    claim: "Melts bloat and fat in just 14 days",  score: 26, scoreLabel: "Weak evidence",  tone: "red",   emoji: "🍵" },
+  { id: "collagen",  name: "Collagen Peptides",    claim: "Visibly changed my skin in 2 weeks",    score: 58, scoreLabel: "Mixed evidence", tone: "amber", emoji: "✨" },
+  { id: "creatinegummies", name: "Creatine Gummy Bears", claim: "Same gains as powder, just tastier", score: 72, scoreLabel: "Backed", tone: "teal", emoji: "🐻" }
+];
 const RECENT_KEY = "receipts_recent_v1";
 
 const SAMPLE_LINKS = [
@@ -968,17 +1047,16 @@ function pushRecent(id, mode){
 
 function renderExamples(){
   const list = document.getElementById('exampleList');
-  list.innerHTML = TRENDING_IDS.map(id => {
-    const p = PRODUCTS[id];
-    return '<button class="example-card" onclick="openCheck(\'' + id + '\')" style="width:100%;">' +
-      '<div class="example-thumb">' + p.emoji + '</div>' +
+  list.innerHTML = TRENDING_WEEK.map(t =>
+    '<button class="example-card" onclick="openCheck(\'' + t.id + '\')" style="width:100%;">' +
+      '<div class="example-thumb">' + t.emoji + '</div>' +
       '<div class="example-meta">' +
-        '<span class="example-handle">' + p.post.handle + ' on ' + p.post.platform + '</span>' +
-        '<span class="example-caption">' + p.post.caption.replace(/^"|"$/g,'') + '</span>' +
+        '<span class="example-handle">' + t.name + '</span>' +
+        '<span class="example-caption">' + t.claim + '</span>' +
       '</div>' +
-      pill(p.score, p.scoreTone) +
-    '</button>';
-  }).join('');
+      pill(t.score + ' · ' + t.scoreLabel, t.tone) +
+    '</button>'
+  ).join('');
 }
 
 function renderRecent(){
@@ -1198,8 +1276,16 @@ function renderCheck(id){
       (p.post.sponsored ? pill('Sponsored', 'gray') : '') +
     '</div>' +
     '<div class="thumb-box"><span class="thumb-play">▶</span><span class="thumb-cap">' + p.post.platform + ' · watch clip</span></div>' +
+    '<div class="tagged-product">' +
+      '<div class="tagged-thumb">' + productArtSvg(p) + '</div>' +
+      '<div style="min-width:0;">' +
+        '<span class="brand-label">' + p.brand + '</span>' +
+        '<div class="tagged-name">' + p.name + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<span class="section-label" style="margin-top:2px;">Claim summary</span>' +
     '<div class="quote-box">' + p.post.caption + '</div>' +
-    '<div class="helpful">Tagged product: ' + p.name + ' — ' + p.brand + '</div>';
+    '<span class="claim-note">' + p.claims[0].note + '</span>';
 
   document.getElementById('claimsBanner').innerHTML = scoreBanner(p);
 
@@ -1215,7 +1301,6 @@ function renderCheck(id){
 
   loadStudyCount(p, 'studyCount-check');
 
-  document.getElementById('evidenceCard').innerHTML = evidenceSummaryHtml(p);
   document.getElementById('valueCard').innerHTML = valueAnalysisHtml(p);
 
   document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
@@ -1256,7 +1341,6 @@ function renderUnverifiedCheck(fullText, imageUrl){
     '</div>' +
     '<span class="helpful">This isn\'t in our curated library, NIH DSLD, or Open Food Facts, so we can\'t score it against evidence yet — this is exactly what your image showed, unedited.</span>';
 
-  document.getElementById('evidenceCard').innerHTML = '';
   document.getElementById('valueCard').innerHTML = '';
   document.getElementById('reviewCard').innerHTML = '<div class="empty-state">No reviews on file for this product yet.</div>';
 
@@ -1405,12 +1489,34 @@ function fillSampleLink(url){
   input.focus();
 }
 
+// Small monochrome platform glyphs (inherit the chip's text colour via
+// currentColor, so they flip to white on hover). Keeps the influencer tags
+// short — just the icon + handle instead of "TikTok · @handle".
+function platformIcon(platform){
+  const p = (platform || '').toLowerCase();
+  if (p.indexOf('tiktok') !== -1){
+    return '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">' +
+      '<path d="M16.5 3c.35 2.06 1.62 3.6 3.5 3.86v2.55c-1.3.13-2.53-.29-3.72-1.01v5.56c0 3.05-2.42 5.53-5.5 5.53S5.28 19.01 5.28 16 7.7 10.47 10.78 10.47c.3 0 .6.02.9.07v2.73c-.29-.09-.59-.14-.9-.14-1.57 0-2.84 1.29-2.84 2.9s1.27 2.9 2.84 2.9 2.9-1.29 2.9-2.9V3h2.82z"/></svg>';
+  }
+  if (p.indexOf('instagram') !== -1){
+    return '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">' +
+      '<rect x="3" y="3" width="18" height="18" rx="5.2"/><circle cx="12" cy="12" r="4.2"/>' +
+      '<circle cx="17.4" cy="6.6" r="1.1" fill="currentColor" stroke="none"/></svg>';
+  }
+  return '';
+}
+
 function renderSampleLinks(){
   const el = document.getElementById('sampleLinkChips');
   if (!el) return;
-  el.innerHTML = SAMPLE_LINKS.map(s =>
-    '<button class="chip" onclick="fillSampleLink(\'' + s.url + '\')">' + s.label + '</button>'
-  ).join('');
+  el.innerHTML = SAMPLE_LINKS.map(s => {
+    const p = PRODUCTS[s.id];
+    const platform = p ? p.post.platform : '';
+    const handle = p ? p.post.handle : s.label;
+    return '<button class="chip" onclick="fillSampleLink(\'' + s.url + '\')">' +
+      platformIcon(platform) + '<span>' + handle + '</span>' +
+    '</button>';
+  }).join('');
 }
 
 function checkPastedLink(){
@@ -1453,11 +1559,51 @@ function showToast(msg){
   toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+// Make the horizontal card rails (.hscroll) scroll horizontally with a mouse
+// too. On a phone they already swipe natively; on desktop a vertical wheel
+// won't move them, so we translate wheel + click-drag into horizontal scroll.
+// Listeners live on the container, so re-rendering the cards' innerHTML keeps
+// them working. Touch is left to native scrolling (mouse pointers only).
+function enableHScroll(){
+  document.querySelectorAll('.hscroll').forEach(el => {
+    if (el.dataset.hscrollBound) return;
+    el.dataset.hscrollBound = '1';
+
+    el.addEventListener('wheel', function(e){
+      if (el.scrollWidth <= el.clientWidth) return;
+      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
+        el.scrollLeft += e.deltaY;
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    let down = false, startX = 0, startLeft = 0, moved = false;
+    el.addEventListener('pointerdown', function(e){
+      if (e.pointerType !== 'mouse') return;
+      down = true; moved = false; startX = e.clientX; startLeft = el.scrollLeft;
+    });
+    el.addEventListener('pointermove', function(e){
+      if (!down) return;
+      const dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      el.scrollLeft = startLeft - dx;
+    });
+    const end = function(){ down = false; };
+    el.addEventListener('pointerup', end);
+    el.addEventListener('pointerleave', end);
+    // Swallow the click that ends a drag so it doesn't open a card.
+    el.addEventListener('click', function(e){
+      if (moved){ e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+  });
+}
+
 renderExamples();
 renderRecent();
 renderTopScored();
 filterBrands();
 renderSampleLinks();
+enableHScroll();
 </script>
 
 </body>
