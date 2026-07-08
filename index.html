@@ -188,7 +188,8 @@
       <div class="tagline">The truth behind the hype.</div>
     </div>
     <div class="search-row">
-      <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…" />
+      <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…"
+        onkeydown="if(event.key==='Enter'){checkPastedLink();}" />
     </div>
     <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
 
@@ -271,6 +272,7 @@ const PRODUCTS = {
     name: "Radiant Collagen Peptides",
     price: "£32.00 · 30 servings",
     emoji: "✨",
+    keywords: ["collagen", "glowwithella", "glowco", "marine collagen"],
     post: {
       platform: "TikTok",
       handle: "@glowwithella",
@@ -301,6 +303,7 @@ const PRODUCTS = {
     name: "Creatine Monohydrate 5g",
     price: "£19.00 · 60 servings",
     emoji: "⚡",
+    keywords: ["creatine", "fitfuel_jess", "peakform"],
     post: {
       platform: "Instagram",
       handle: "@fitfuel_jess",
@@ -331,6 +334,7 @@ const PRODUCTS = {
     name: "Magnesium Glycinate 400mg",
     price: "£28.00 · 60 capsules",
     emoji: "🌙",
+    keywords: ["magnesium", "sleepy.sabine", "wild nutrition", "wildnutrition", "glycinate"],
     post: {
       platform: "Instagram",
       handle: "@sleepy.sabine",
@@ -361,6 +365,7 @@ const PRODUCTS = {
     name: "Daily Greens Blend",
     price: "£34.00 · 30 servings",
     emoji: "🥬",
+    keywords: ["greens", "rise.with.remi", "verdant", "daily greens"],
     post: {
       platform: "TikTok",
       handle: "@rise.with.remi",
@@ -570,8 +575,44 @@ function openProductDirect(id){
   show('screen-product');
 }
 
+function detectPlatform(s){
+  if (s.includes('tiktok.com')) return 'TikTok';
+  if (s.includes('instagram.com') || s.includes('instagr.am')) return 'Instagram';
+  if (s.includes('youtube.com') || s.includes('youtu.be')) return 'YouTube';
+  return null;
+}
+
+function matchProduct(input){
+  const s = input.toLowerCase();
+  const ids = Object.keys(PRODUCTS);
+  for (const id of ids){
+    const p = PRODUCTS[id];
+    const handle = p.post.handle.replace('@', '').toLowerCase();
+    const kws = [handle, id].concat(p.keywords || []);
+    for (const kw of kws){
+      if (kw && s.includes(kw.toLowerCase())) return id;
+    }
+  }
+  return null;
+}
+
 function checkPastedLink(){
-  openCheck(currentId || 'collagen');
+  const raw = document.getElementById('pasteInput').value.trim();
+  if (!raw){
+    showToast('Paste a link, or try an example below');
+    return;
+  }
+  const matched = matchProduct(raw);
+  if (matched){
+    openCheck(matched);
+    return;
+  }
+  const plat = detectPlatform(raw.toLowerCase());
+  showToast(plat
+    ? "That " + plat + " link isn't in our evidence library yet — try an example below"
+    : "Not in our evidence library yet — try an example below");
+  const examples = document.getElementById('exampleList');
+  if (examples && examples.scrollIntoView) examples.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function openProductFromCheck(){
