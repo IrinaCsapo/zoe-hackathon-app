@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>Receipts — check the claim, not just the caption</title>
 <style>
   :root{
@@ -22,36 +22,48 @@
     --teal-text:#085041;
     --amber-bg:#FAEEDA;
     --amber-text:#633806;
+    --red-bg:#FCEBEB;
+    --red-text:#791F1F;
     --gray-bg:#F0EBE2;
     --gray-text:#6B6660;
     --star:#EF9F27;
   }
   *{box-sizing:border-box;}
+  html,body{height:100%;}
   body{
     margin:0;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     background:var(--bg);
     color:var(--text);
+  }
+  .page{
     min-height:100vh;
+    min-height:100dvh;
     display:flex;
-    align-items:flex-start;
     justify-content:center;
-    padding:32px 16px;
+    align-items:stretch;
   }
   .app-shell{
-    width:390px;
-    max-width:100%;
+    width:100%;
     background:var(--app-bg);
-    border-radius:32px;
-    border:1px solid var(--border-strong);
-    box-shadow:0 20px 50px rgba(0,0,0,0.12);
-    overflow:hidden;
+    display:flex;
+    flex-direction:column;
   }
-  @media (max-width:460px){
-    body{padding:0;}
-    .app-shell{border-radius:0;box-shadow:none;border:none;min-height:100vh;}
+  @media (min-width:461px){
+    .page{align-items:flex-start; padding:32px 16px;}
+    .app-shell{
+      width:390px;
+      border-radius:32px;
+      border:1px solid var(--border-strong);
+      box-shadow:0 20px 50px rgba(0,0,0,0.12);
+      overflow:hidden;
+    }
   }
-  .screen{display:none;flex-direction:column;gap:16px;padding:20px 20px 32px;}
+  .screen{
+    display:none;flex-direction:column;gap:16px;flex:1;
+    padding:max(20px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+            max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
+  }
   .screen.active{display:flex;}
   .statusbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-secondary);}
   .statusbar b{color:var(--text);font-weight:600;}
@@ -81,14 +93,15 @@
     width:52px;height:52px;border-radius:10px;background:var(--surface-alt);
     display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
   }
-  .example-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .example-meta{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
   .example-handle{font-size:12.5px;font-weight:600;}
   .example-caption{font-size:11.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;}
   .row-between{display:flex;justify-content:space-between;align-items:center;gap:8px;}
-  .pill{font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .pill{font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0;}
   .pill-teal{background:var(--teal-bg);color:var(--teal-text);}
   .pill-amber{background:var(--amber-bg);color:var(--amber-text);}
+  .pill-red{background:var(--red-bg);color:var(--red-text);}
   .pill-gray{background:var(--gray-bg);color:var(--gray-text);}
   .tag-row{display:flex;gap:6px;flex-wrap:wrap;}
   .thumb-box{height:150px;border-radius:12px;background:var(--surface-alt);border:1px solid var(--border);
@@ -121,6 +134,15 @@
   .review-name{font-size:12.5px;font-weight:600;}
   .review-body{font-size:12.5px;line-height:1.5;}
   .helpful{font-size:11px;color:var(--text-muted);}
+  .list-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2px 12px;display:flex;flex-direction:column;}
+  .list-row{display:flex;align-items:center;gap:10px;padding:10px 0;background:none;border:none;border-top:1px solid var(--border);width:100%;text-align:left;cursor:pointer;}
+  .list-row:first-child{border-top:none;}
+  .list-thumb{width:36px;height:36px;border-radius:9px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .list-meta{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
+  .list-title{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .list-sub{font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .list-chevron{color:var(--text-muted);font-size:14px;flex-shrink:0;}
+  .empty-state{font-size:12px;color:var(--text-muted);padding:14px 2px;text-align:center;}
   .toast{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
     background:var(--text);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;
@@ -131,6 +153,7 @@
 </head>
 <body>
 
+<div class="page">
 <div class="app-shell">
 
   <!-- HOME -->
@@ -144,6 +167,12 @@
       <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…" />
     </div>
     <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
+
+    <div class="section-label">Recently checked</div>
+    <div class="list-card" id="recentList"></div>
+
+    <div class="section-label">Top scored by the community</div>
+    <div class="list-card" id="topScoredList"></div>
 
     <div class="section-label">Or try a trending check</div>
     <div id="exampleList" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -204,6 +233,7 @@
     <div class="card review-card" id="p-reviewCard"></div>
   </section>
 
+</div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -269,8 +299,71 @@ const PRODUCTS = {
     review: { name: "Sam O.", initials: "SO", bg: "#9FE1CB", fg: "#04342C", rating: 5,
       body: "Noticed a real difference in my lifts after about 3 weeks. Can't say I feel smarter though.",
       tag: "Helped", tagTone: "teal", helpful: 18 }
+  },
+  magnesium: {
+    brand: "Wild Nutrition",
+    name: "Magnesium Glycinate 400mg",
+    price: "£28.00 · 60 capsules",
+    emoji: "🌙",
+    post: {
+      platform: "Instagram",
+      handle: "@sleepy.sabine",
+      followers: "96K followers",
+      bio: "Bio: \"sleep & stress coach\"",
+      credentialFlag: true,
+      sponsored: false,
+      caption: "\"Been taking this every night before bed and my sleep has never been this deep\""
+    },
+    score: 72,
+    scoreLabel: "Backed",
+    scoreTone: "teal",
+    claims: [
+      { claim: "Marketed for better sleep", verdict: "Moderate evidence", tone: "teal",
+        note: "Backed by 3 peer-reviewed studies on magnesium and sleep quality" },
+      { claim: "Reduces stress and anxiety", verdict: "Limited evidence", tone: "amber",
+        note: "Only 1 small study (n=42) — effect size unclear" }
+    ],
+    avgRating: 4.3,
+    reviewCount: 128,
+    barPcts: [62, 22, 9, 4, 3],
+    review: { name: "Priya K.", initials: "PK", bg: "#F5C4B3", fg: "#4A1B0C", rating: 5,
+      body: "Been taking this for 6 weeks for sleep — noticeably falling asleep faster.",
+      tag: "Helped", tagTone: "teal", helpful: 24 }
+  },
+  greens: {
+    brand: "Verdant",
+    name: "Daily Greens Blend",
+    price: "£34.00 · 30 servings",
+    emoji: "🥬",
+    post: {
+      platform: "TikTok",
+      handle: "@rise.with.remi",
+      followers: "1.1M followers",
+      bio: "Bio: \"holistic wellness\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"One scoop of this and I have SO much more energy, my bloating is gone completely\""
+    },
+    score: 34,
+    scoreLabel: "Weak evidence",
+    scoreTone: "red",
+    claims: [
+      { claim: "Boosts all-day energy", verdict: "Weak evidence", tone: "red",
+        note: "No controlled trials on this specific blend — individual ingredients show mixed results at these doses" },
+      { claim: "Eliminates bloating", verdict: "Weak evidence", tone: "red",
+        note: "No published studies support this claim for the product as formulated" }
+    ],
+    avgRating: 3.1,
+    reviewCount: 52,
+    barPcts: [18, 20, 25, 20, 17],
+    review: { name: "Beth L.", initials: "BL", bg: "#C0DD97", fg: "#173404", rating: 2,
+      body: "Tastes fine but I didn't notice any energy difference after a month.",
+      tag: "No change", tagTone: "gray", helpful: 14 }
   }
 };
+
+const TRENDING_IDS = ["collagen", "creatine"];
+const RECENT_KEY = "receipts_recent_v1";
 
 let currentId = "collagen";
 let screenStack = ["screen-home"];
@@ -285,16 +378,63 @@ function starsHtml(rating, size){
   return out;
 }
 
+function getRecent(){
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; }
+  catch (e) { return []; }
+}
+function pushRecent(id, mode){
+  let list = getRecent().filter(r => !(r.id === id && r.mode === mode));
+  list.unshift({ id: id, mode: mode, ts: Date.now() });
+  list = list.slice(0, 5);
+  try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) {}
+}
+
 function renderExamples(){
   const list = document.getElementById('exampleList');
-  list.innerHTML = Object.keys(PRODUCTS).map(id => {
+  list.innerHTML = TRENDING_IDS.map(id => {
     const p = PRODUCTS[id];
-    return '<button class="example-card" onclick="openCheck(\'' + id + '\')" style="border:1px solid var(--border);background:var(--surface);width:100%;">' +
+    return '<button class="example-card" onclick="openCheck(\'' + id + '\')" style="width:100%;">' +
       '<div class="example-thumb">' + p.emoji + '</div>' +
       '<div class="example-meta">' +
         '<span class="example-handle">' + p.post.handle + ' on ' + p.post.platform + '</span>' +
         '<span class="example-caption">' + p.post.caption.replace(/^"|"$/g,'') + '</span>' +
       '</div>' +
+      pill(p.score, p.scoreTone) +
+    '</button>';
+  }).join('');
+}
+
+function renderRecent(){
+  const el = document.getElementById('recentList');
+  const list = getRecent();
+  if (!list.length){
+    el.innerHTML = '<div class="empty-state">Nothing checked yet — try an example below.</div>';
+    return;
+  }
+  el.innerHTML = list.map(r => {
+    const p = PRODUCTS[r.id];
+    if (!p) return '';
+    const sub = r.mode === 'check' ? (p.post.handle + ' · ' + p.post.platform) : (p.brand + ' · product page');
+    const action = r.mode === 'check' ? "openCheck('" + r.id + "')" : "openProductDirect('" + r.id + "')";
+    return '<button class="list-row" onclick="' + action + '">' +
+      '<div class="list-thumb">' + p.emoji + '</div>' +
+      '<div class="list-meta"><span class="list-title">' + p.name + '</span><span class="list-sub">' + sub + '</span></div>' +
+      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
+      '<span class="list-chevron">›</span>' +
+    '</button>';
+  }).join('');
+}
+
+function renderTopScored(){
+  const el = document.getElementById('topScoredList');
+  const ids = Object.keys(PRODUCTS).sort((a, b) => PRODUCTS[b].score - PRODUCTS[a].score);
+  el.innerHTML = ids.map(id => {
+    const p = PRODUCTS[id];
+    return '<button class="list-row" onclick="openProductDirect(\'' + id + '\')">' +
+      '<div class="list-thumb">' + p.emoji + '</div>' +
+      '<div class="list-meta"><span class="list-title">' + p.name + '</span><span class="list-sub">' + p.brand + ' · ' + p.avgRating.toFixed(1) + '★ (' + p.reviewCount + ')</span></div>' +
+      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
+      '<span class="list-chevron">›</span>' +
     '</button>';
   }).join('');
 }
@@ -318,7 +458,7 @@ function renderCheck(id){
 
   document.getElementById('claimsCard').innerHTML =
     '<div class="row-between">' +
-      '<span style="font-size:14px;font-weight:600;">Claim vs evidence</span>' +
+      '<span style="font-size:14px;font-weight:600;">Claim score</span>' +
       pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
     '</div>' +
     p.claims.map((c, i) =>
@@ -354,7 +494,7 @@ function renderProduct(id){
 
   document.getElementById('p-claimsCard').innerHTML =
     '<div class="row-between">' +
-      '<span style="font-size:14px;font-weight:600;">Claim vs evidence</span>' +
+      '<span style="font-size:14px;font-weight:600;">Claim score</span>' +
       pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
     '</div>' +
     p.claims.map((c, i) =>
@@ -380,13 +520,26 @@ function show(screenId){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
   window.scrollTo(0, 0);
+  if (screenId === 'screen-home'){
+    renderRecent();
+    renderTopScored();
+  }
 }
 
 function openCheck(id){
   currentId = id;
   renderCheck(id);
+  pushRecent(id, 'check');
   screenStack.push('screen-check');
   show('screen-check');
+}
+
+function openProductDirect(id){
+  currentId = id;
+  renderProduct(id);
+  pushRecent(id, 'product');
+  screenStack.push('screen-product');
+  show('screen-product');
 }
 
 function checkPastedLink(){
@@ -395,6 +548,7 @@ function checkPastedLink(){
 
 function openProductFromCheck(){
   renderProduct(currentId);
+  pushRecent(currentId, 'product');
   screenStack.push('screen-product');
   show('screen-product');
 }
@@ -414,6 +568,8 @@ function showToast(msg){
 }
 
 renderExamples();
+renderRecent();
+renderTopScored();
 </script>
 
 </body>
