@@ -219,6 +219,8 @@
           onkeydown="if(event.key==='Enter'){checkPastedLink();}" />
       </div>
       <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
+      <span class="helpful">Try pasting one of these:</span>
+      <div class="chip-row" id="sampleLinkChips"></div>
     </div>
 
     <div class="tab-panel" id="tab-screenshot">
@@ -447,6 +449,13 @@ const PRODUCTS = {
 
 const TRENDING_IDS = ["collagen", "creatine"];
 const RECENT_KEY = "receipts_recent_v1";
+
+const SAMPLE_LINKS = [
+  { id: "collagen", label: "TikTok · @glowwithella", url: "https://www.tiktok.com/@glowwithella/video/7291837465210" },
+  { id: "creatine", label: "Instagram · @fitfuel_jess", url: "https://www.instagram.com/fitfuel_jess/" },
+  { id: "magnesium", label: "Instagram · @sleepy.sabine", url: "https://www.instagram.com/sleepy.sabine/" },
+  { id: "greens", label: "TikTok · @rise.with.remi", url: "https://www.tiktok.com/@rise.with.remi/video/7301122334455" }
+];
 
 let currentId = "collagen";
 let screenStack = ["screen-home"];
@@ -683,18 +692,42 @@ function detectPlatform(s){
   return null;
 }
 
+function extractHandleFromUrl(s){
+  let m = s.match(/tiktok\.com\/@([a-z0-9._]+)/i);
+  if (m) return m[1].toLowerCase();
+  m = s.match(/instagram\.com\/([a-z0-9._]+)/i);
+  if (m) return m[1].toLowerCase();
+  return null;
+}
+
 function matchProduct(input){
   const s = input.toLowerCase();
+  const urlHandle = extractHandleFromUrl(s);
   const ids = Object.keys(PRODUCTS);
   for (const id of ids){
     const p = PRODUCTS[id];
     const handle = p.post.handle.replace('@', '').toLowerCase();
+    if (urlHandle && urlHandle === handle) return id;
     const kws = [handle, id].concat(p.keywords || []);
     for (const kw of kws){
       if (kw && s.includes(kw.toLowerCase())) return id;
     }
   }
   return null;
+}
+
+function fillSampleLink(url){
+  const input = document.getElementById('pasteInput');
+  input.value = url;
+  input.focus();
+}
+
+function renderSampleLinks(){
+  const el = document.getElementById('sampleLinkChips');
+  if (!el) return;
+  el.innerHTML = SAMPLE_LINKS.map(s =>
+    '<button class="chip" onclick="fillSampleLink(\'' + s.url + '\')">' + s.label + '</button>'
+  ).join('');
 }
 
 function checkPastedLink(){
@@ -741,6 +774,7 @@ renderExamples();
 renderRecent();
 renderTopScored();
 filterBrands();
+renderSampleLinks();
 </script>
 
 </body>
