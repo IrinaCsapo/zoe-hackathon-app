@@ -84,6 +84,26 @@
     border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);
   }
   .search-row input::placeholder{color:var(--text-muted);}
+  .input-tabs{display:flex;gap:4px;background:var(--surface-alt);padding:4px;border-radius:13px;}
+  .tab-btn{flex:1;border:none;background:none;padding:8px 4px;border-radius:10px;font-size:12.5px;font-weight:700;color:var(--text-secondary);cursor:pointer;}
+  .tab-btn.active{background:var(--surface);color:var(--brand);box-shadow:0 1px 3px rgba(90,60,180,0.12);}
+  .tab-panel{display:none;flex-direction:column;gap:10px;}
+  .tab-panel.active{display:flex;}
+  .upload-drop{border:1.5px dashed var(--border-strong);border-radius:14px;padding:20px 16px;
+    display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;cursor:pointer;background:var(--surface);}
+  .upload-drop input[type="file"]{display:none;}
+  .upload-icon{font-size:22px;}
+  .upload-hint{font-size:11.5px;color:var(--text-muted);}
+  .upload-title{font-size:13px;font-weight:600;}
+  .upload-preview{display:none;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;}
+  .upload-preview.active{display:flex;}
+  .upload-preview img{width:52px;height:52px;object-fit:cover;border-radius:10px;flex-shrink:0;}
+  .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .upload-preview-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .chip{border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;
+    padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);}
+  .chip:hover{border-color:var(--brand);color:var(--brand-dark);}
   .btn-primary{
     background:var(--accent);color:var(--accent-on);border:none;border-radius:14px;
     padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;width:100%;
@@ -187,11 +207,43 @@
       </div>
       <div class="tagline">The truth behind the hype.</div>
     </div>
-    <div class="search-row">
-      <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…"
-        onkeydown="if(event.key==='Enter'){checkPastedLink();}" />
+    <div class="input-tabs">
+      <button class="tab-btn active" data-tab="link" onclick="showInputTab('link')">Link</button>
+      <button class="tab-btn" data-tab="screenshot" onclick="showInputTab('screenshot')">Screenshot</button>
+      <button class="tab-btn" data-tab="brand" onclick="showInputTab('brand')">Brand</button>
     </div>
-    <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
+
+    <div class="tab-panel active" id="tab-link">
+      <div class="search-row">
+        <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…"
+          onkeydown="if(event.key==='Enter'){checkPastedLink();}" />
+      </div>
+      <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
+    </div>
+
+    <div class="tab-panel" id="tab-screenshot">
+      <label class="upload-drop" id="uploadDrop">
+        <span class="upload-icon">📷</span>
+        <span class="upload-title">Upload a screenshot</span>
+        <span class="upload-hint">A saved post, a caption, a product label — any image</span>
+        <input type="file" accept="image/*" id="screenshotInput" onchange="handleScreenshot(this)" />
+      </label>
+      <div class="upload-preview" id="uploadPreview">
+        <img id="uploadPreviewImg" alt="Uploaded screenshot preview" />
+        <div class="upload-preview-meta">
+          <span class="upload-preview-name" id="uploadPreviewName"></span>
+          <span class="helpful">Which product is this?</span>
+        </div>
+      </div>
+      <div class="chip-row" id="screenshotChips"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-brand">
+      <div class="search-row">
+        <input type="text" id="brandInput" placeholder="Search by brand or product name…" oninput="filterBrands()" />
+      </div>
+      <div class="list-card" id="brandResults"></div>
+    </div>
 
     <div class="section-label">Recently checked</div>
     <div class="list-card" id="recentList"></div>
@@ -476,6 +528,55 @@ function renderTopScored(){
   }).join('');
 }
 
+function showInputTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+
+function handleScreenshot(input){
+  const file = input.files && input.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.getElementById('uploadPreviewImg').src = url;
+  document.getElementById('uploadPreviewName').textContent = file.name;
+  document.getElementById('uploadPreview').classList.add('active');
+  renderScreenshotChips();
+}
+
+function renderScreenshotChips(){
+  const el = document.getElementById('screenshotChips');
+  el.innerHTML = Object.keys(PRODUCTS).map(id => {
+    const p = PRODUCTS[id];
+    return '<button class="chip" onclick="openCheck(\'' + id + '\')">' + p.emoji + ' ' + p.name + '</button>';
+  }).join('');
+}
+
+function filterBrands(){
+  const q = document.getElementById('brandInput').value.trim().toLowerCase();
+  const el = document.getElementById('brandResults');
+  if (!q){
+    el.innerHTML = '<div class="empty-state">Start typing a brand or product name…</div>';
+    return;
+  }
+  const ids = Object.keys(PRODUCTS).filter(id => {
+    const p = PRODUCTS[id];
+    return (p.brand + ' ' + p.name).toLowerCase().includes(q);
+  });
+  if (!ids.length){
+    el.innerHTML = '<div class="empty-state">No matches yet — try collagen, creatine, magnesium, or greens.</div>';
+    return;
+  }
+  el.innerHTML = ids.map(id => {
+    const p = PRODUCTS[id];
+    return '<button class="list-row" onclick="openProductDirect(\'' + id + '\')">' +
+      '<div class="list-thumb">' + p.emoji + '</div>' +
+      '<div class="list-meta"><span class="list-title">' + p.name + '</span><span class="list-sub">' + p.brand + '</span></div>' +
+      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
+      '<span class="list-chevron">›</span>' +
+    '</button>';
+  }).join('');
+}
+
 function renderCheck(id){
   const p = PRODUCTS[id];
   document.getElementById('postCard').innerHTML =
@@ -639,6 +740,7 @@ function showToast(msg){
 renderExamples();
 renderRecent();
 renderTopScored();
+filterBrands();
 </script>
 
 </body>
