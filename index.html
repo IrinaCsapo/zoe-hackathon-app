@@ -147,8 +147,8 @@
   .source-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .source-count{display:none;font-size:11px;color:var(--text-muted);}
   .source-count.show{display:inline;}
-  .dsld-detail{margin-top:-4px;}
-  .dsld-detail.card{gap:6px;border-top:none;border-top-left-radius:0;border-top-right-radius:0;}
+  .dsld-detail,.off-detail{margin-top:-4px;}
+  .dsld-detail.card,.off-detail.card{gap:6px;border-top:none;border-top-left-radius:0;border-top-right-radius:0;}
   .product-img{height:190px;border-radius:16px;background:var(--surface-alt);border:1px solid var(--border);
     display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;}
   .brand-label{font-size:11px;font-weight:700;letter-spacing:0.02em;color:var(--brand-dark);}
@@ -251,6 +251,7 @@
       </div>
       <div class="list-card" id="brandResults"></div>
       <div id="dsldResults"></div>
+      <div id="offResults"></div>
     </div>
 
     <div class="section-label">Recently checked</div>
@@ -600,6 +601,82 @@ async function expandDsldResult(id, btnEl){
   }
 }
 
+// Open Food Facts is free, global, and crowd-sourced — unlike DSLD (US-only
+// government data) it does carry non-US brands, so it's the fallback source
+// for anything DSLD doesn't have (e.g. UK-market brands).
+async function fetchOffResults(query){
+  const url = 'https://world.openfoodfacts.org/cgi/search.pl?search_terms=' + encodeURIComponent(query) + '&json=1&page_size=4';
+  const res = await fetchWithTimeout(url, 6000);
+  if (!res.ok) throw new Error('Open Food Facts request failed: ' + res.status);
+  const data = await res.json();
+  const products = (data && data.products) || [];
+  return products.map(p => ({
+    code: p.code || '',
+    name: p.product_name || p.generic_name || '',
+    brand: p.brands || ''
+  })).filter(r => r.name && r.code);
+}
+
+let offRequestToken = 0;
+async function renderOffSection(query){
+  const container = document.getElementById('offResults');
+  if (!container) return;
+  const trimmed = (query || '').trim();
+  if (trimmed.length < 3){
+    container.innerHTML = '';
+    return;
+  }
+  const myToken = ++offRequestToken;
+  container.innerHTML = '<div class="empty-state">Searching Open Food Facts…</div>';
+  try {
+    const results = await fetchOffResults(trimmed);
+    if (myToken !== offRequestToken) return;
+    if (!results.length){
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = '<div class="section-label" style="margin-top:2px;">From Open Food Facts (global, crowd-sourced)</div>' +
+      '<div class="list-card">' + results.map(r =>
+        '<button class="list-row" onclick="expandOffResult(\'' + r.code + '\', this)">' +
+          '<div class="list-thumb">🌍</div>' +
+          '<div class="list-meta"><span class="list-title">' + r.name + '</span><span class="list-sub">' + (r.brand || 'Unknown brand') + '</span></div>' +
+          pill('Real data', 'gray') +
+        '</button>'
+      ).join('') + '</div>';
+  } catch (e) {
+    if (myToken !== offRequestToken) return;
+    container.innerHTML = '';
+  }
+}
+
+async function expandOffResult(code, btnEl){
+  const next = btnEl.nextElementSibling;
+  if (next && next.classList && next.classList.contains('off-detail')){
+    next.remove();
+    return;
+  }
+  const panel = document.createElement('div');
+  panel.className = 'off-detail empty-state';
+  panel.textContent = 'Loading real product data…';
+  btnEl.insertAdjacentElement('afterend', panel);
+  try {
+    const url = 'https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) + '.json?fields=product_name,brands,ingredients_text';
+    const res = await fetchWithTimeout(url, 6000);
+    if (!res.ok) throw new Error('product fetch failed');
+    const data = await res.json();
+    const prod = (data && data.product) || {};
+    const ingredientsText = prod.ingredients_text || '';
+    panel.className = 'off-detail card';
+    panel.innerHTML =
+      '<span class="claim-title">Ingredients (Open Food Facts)</span>' +
+      '<span class="claim-note">' + (ingredientsText ? ingredientsText.slice(0, 240) : 'No ingredient list on file for this product') + '</span>' +
+      '<span class="helpful">Evidence scoring isn\'t available for this product yet — it\'s not in our curated library.</span>';
+  } catch (e) {
+    panel.className = 'off-detail empty-state';
+    panel.textContent = "Couldn't load real product data right now.";
+  }
+}
+
 function getRecent(){
   try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; }
   catch (e) { return []; }
@@ -696,6 +773,7 @@ function filterBrands(){
   const q = raw.toLowerCase();
   const el = document.getElementById('brandResults');
   renderDsldSection(raw);
+  renderOffSection(raw);
 
   if (!q){
     el.innerHTML = '<div class="empty-state">Start typing a brand or product name…</div>' + suggestionChipsHtml();
