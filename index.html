@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Receipts — check the claim, not just the caption</title>
+<style>
+  :root{
+    --bg:#EDE7DF;
+    --app-bg:#FAF6F1;
+    --surface:#FFFFFF;
+    --surface-alt:#F3EEE6;
+    --border:#E6DFD4;
+    --border-strong:#D8CFC0;
+    --text:#1A1A1A;
+    --text-secondary:#6B6660;
+    --text-muted:#9C9690;
+    --accent:#D85A30;
+    --accent-on:#FDF2ED;
+    --accent-text:#993C1D;
+    --teal-bg:#E1F5EE;
+    --teal-text:#085041;
+    --amber-bg:#FAEEDA;
+    --amber-text:#633806;
+    --gray-bg:#F0EBE2;
+    --gray-text:#6B6660;
+    --star:#EF9F27;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:32px 16px;
+  }
+  .app-shell{
+    width:390px;
+    max-width:100%;
+    background:var(--app-bg);
+    border-radius:32px;
+    border:1px solid var(--border-strong);
+    box-shadow:0 20px 50px rgba(0,0,0,0.12);
+    overflow:hidden;
+  }
+  @media (max-width:460px){
+    body{padding:0;}
+    .app-shell{border-radius:0;box-shadow:none;border:none;min-height:100vh;}
+  }
+  .screen{display:none;flex-direction:column;gap:16px;padding:20px 20px 32px;}
+  .screen.active{display:flex;}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-secondary);}
+  .statusbar b{color:var(--text);font-weight:600;}
+  .nav{display:flex;justify-content:space-between;align-items:center;}
+  .nav button.icon-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);padding:4px;line-height:1;}
+  .nav .title{font-size:15px;font-weight:600;}
+  .wordmark{font-size:26px;font-weight:700;letter-spacing:-0.01em;}
+  .tagline{font-size:13px;color:var(--text-secondary);margin-top:-8px;}
+  .search-row{display:flex;gap:8px;}
+  .search-row input{
+    flex:1;border:1px solid var(--border-strong);background:var(--surface);
+    border-radius:12px;padding:12px 14px;font-size:13px;color:var(--text);
+  }
+  .search-row input::placeholder{color:var(--text-muted);}
+  .btn-primary{
+    background:var(--accent);color:var(--accent-on);border:none;border-radius:14px;
+    padding:13px;font-size:14.5px;font-weight:600;cursor:pointer;width:100%;
+  }
+  .btn-primary:active{opacity:0.85;}
+  .section-label{font-size:13px;font-weight:600;color:var(--text-secondary);margin-top:4px;}
+  .example-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:12px;display:flex;gap:10px;align-items:center;cursor:pointer;text-align:left;
+  }
+  .example-card:hover{border-color:var(--border-strong);}
+  .example-thumb{
+    width:52px;height:52px;border-radius:10px;background:var(--surface-alt);
+    display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+  }
+  .example-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .example-handle{font-size:12.5px;font-weight:600;}
+  .example-caption{font-size:11.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+  .row-between{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .pill{font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;}
+  .pill-teal{background:var(--teal-bg);color:var(--teal-text);}
+  .pill-amber{background:var(--amber-bg);color:var(--amber-text);}
+  .pill-gray{background:var(--gray-bg);color:var(--gray-text);}
+  .tag-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .thumb-box{height:150px;border-radius:12px;background:var(--surface-alt);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;}
+  .quote-box{background:var(--surface-alt);border-radius:10px;padding:10px 12px;font-size:12.5px;line-height:1.5;}
+  .claim-row{display:flex;flex-direction:column;gap:4px;}
+  .claim-top{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+  .claim-title{font-size:12.5px;font-weight:600;}
+  .claim-note{font-size:11.5px;color:var(--text-secondary);line-height:1.4;}
+  .divider{height:1px;background:var(--border);}
+  .link-out{font-size:12px;font-weight:600;color:var(--accent-text);text-decoration:none;}
+  .product-img{height:190px;border-radius:16px;background:var(--surface-alt);border:1px solid var(--border);
+    display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;}
+  .brand-label{font-size:11px;font-weight:600;letter-spacing:0.02em;color:var(--accent-text);}
+  .product-name{font-size:19px;font-weight:700;}
+  .price-row{font-size:13px;color:var(--text-secondary);}
+  .rating-summary{display:flex;gap:20px;align-items:center;}
+  .big-num{font-size:28px;font-weight:700;}
+  .stars{display:flex;gap:1px;}
+  .star{font-size:12px;color:var(--star);}
+  .star.off{color:var(--border-strong);}
+  .bars{display:flex;flex-direction:column;gap:5px;flex:1;}
+  .bar-row{display:flex;align-items:center;gap:8px;}
+  .bar-row span{font-size:10.5px;color:var(--text-secondary);width:8px;}
+  .bar-track{height:6px;border-radius:3px;background:var(--border);flex:1;overflow:hidden;}
+  .bar-fill{height:100%;background:var(--star);}
+  .review-card{display:flex;flex-direction:column;gap:8px;}
+  .review-head{display:flex;gap:10px;align-items:center;}
+  .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
+  .review-name{font-size:12.5px;font-weight:600;}
+  .review-body{font-size:12.5px;line-height:1.5;}
+  .helpful{font-size:11px;color:var(--text-muted);}
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--text);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;
+    opacity:0;pointer-events:none;transition:opacity 0.2s ease, transform 0.2s ease;z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- HOME -->
+  <section class="screen active" id="screen-home">
+    <div class="statusbar"><b>9:41</b><span>Wi-Fi 100%</span></div>
+    <div>
+      <div class="wordmark">Receipts</div>
+      <div class="tagline">Show your receipts.</div>
+    </div>
+    <div class="search-row">
+      <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…" />
+    </div>
+    <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
+
+    <div class="section-label">Or try a trending check</div>
+    <div id="exampleList" style="display:flex;flex-direction:column;gap:10px;"></div>
+  </section>
+
+  <!-- CHECK A POST -->
+  <section class="screen" id="screen-check">
+    <div class="statusbar"><b>9:41</b><span>Wi-Fi 100%</span></div>
+    <div class="nav">
+      <button class="icon-btn" onclick="goBack()" aria-label="Back">←</button>
+      <span class="title">Check a post</span>
+      <button class="icon-btn" aria-label="Share">↗</button>
+    </div>
+
+    <div class="card" id="postCard"></div>
+    <div class="card" id="claimsCard"></div>
+
+    <div class="row-between">
+      <span class="section-label" style="margin:0;">What real reviewers say</span>
+    </div>
+    <div class="card review-card" id="reviewCard"></div>
+
+    <button class="btn-primary" onclick="openProductFromCheck()">See full product page</button>
+  </section>
+
+  <!-- PRODUCT PAGE -->
+  <section class="screen" id="screen-product">
+    <div class="statusbar"><b>9:41</b><span>Wi-Fi 100%</span></div>
+    <div class="nav">
+      <button class="icon-btn" onclick="goBack()" aria-label="Back">←</button>
+      <span class="title">Product</span>
+      <button class="icon-btn" aria-label="Save">♡</button>
+    </div>
+
+    <div class="product-img">Product photo</div>
+    <div style="display:flex;flex-direction:column;gap:4px;">
+      <span class="brand-label" id="p-brand"></span>
+      <span class="product-name" id="p-name"></span>
+      <span class="price-row" id="p-price"></span>
+    </div>
+
+    <div class="card" id="p-claimsCard"></div>
+
+    <div class="card rating-summary">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;">
+        <span class="big-num" id="p-avg"></span>
+        <div class="stars" id="p-avgStars"></div>
+        <span class="helpful" id="p-count"></span>
+      </div>
+      <div class="bars" id="p-bars"></div>
+    </div>
+
+    <button class="btn-primary" onclick="showToast('Reviews open once your account is set up')">Write a review</button>
+
+    <div class="row-between">
+      <span class="section-label" style="margin:0;">Recent reviews</span>
+    </div>
+    <div class="card review-card" id="p-reviewCard"></div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const PRODUCTS = {
+  collagen: {
+    brand: "GlowCo",
+    name: "Radiant Collagen Peptides",
+    price: "£32.00 · 30 servings",
+    emoji: "✨",
+    post: {
+      platform: "TikTok",
+      handle: "@glowwithella",
+      followers: "482K followers",
+      bio: "Bio: \"nutrition coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"This marine collagen literally changed my skin in 2 weeks — code ELLA20 for 20% off\""
+    },
+    score: 58,
+    scoreLabel: "Mixed evidence",
+    scoreTone: "amber",
+    claims: [
+      { claim: "Visibly improves skin in 2 weeks", verdict: "Limited evidence", tone: "amber",
+        note: "Most collagen-and-skin studies run 8–12 weeks — no peer-reviewed data shows visible change this fast" },
+      { claim: "Reduces fine lines and wrinkles", verdict: "Moderate evidence", tone: "teal",
+        note: "Meta-analyses show modest improvement after 8–12 weeks of daily use" }
+    ],
+    avgRating: 3.8,
+    reviewCount: 89,
+    barPcts: [38, 30, 18, 9, 5],
+    review: { name: "Mara T.", initials: "MT", bg: "#CECBF6", fg: "#26215C", rating: 3,
+      body: "Skin didn't change in 2 weeks like the video promised — started noticing a difference closer to week 10.",
+      tag: "Slower than claimed", tagTone: "gray", helpful: 31 }
+  },
+  creatine: {
+    brand: "PeakForm",
+    name: "Creatine Monohydrate 5g",
+    price: "£19.00 · 60 servings",
+    emoji: "⚡",
+    post: {
+      platform: "Instagram",
+      handle: "@fitfuel_jess",
+      followers: "215K followers",
+      bio: "Bio: \"fitness & mindset coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"Add this to your morning coffee and watch your focus skyrocket — my brain has never felt clearer\""
+    },
+    score: 74,
+    scoreLabel: "Backed",
+    scoreTone: "teal",
+    claims: [
+      { claim: "Improves strength and power output", verdict: "Strong evidence", tone: "teal",
+        note: "One of the most well-studied supplements in sports science — consistent results across 500+ trials" },
+      { claim: "Sharpens focus and memory", verdict: "Limited evidence", tone: "amber",
+        note: "Early studies show a modest cognitive effect under sleep-deprived conditions only — not general daily focus" }
+    ],
+    avgRating: 4.5,
+    reviewCount: 143,
+    barPcts: [68, 20, 7, 3, 2],
+    review: { name: "Sam O.", initials: "SO", bg: "#9FE1CB", fg: "#04342C", rating: 5,
+      body: "Noticed a real difference in my lifts after about 3 weeks. Can't say I feel smarter though.",
+      tag: "Helped", tagTone: "teal", helpful: 18 }
+  }
+};
+
+let currentId = "collagen";
+let screenStack = ["screen-home"];
+
+function pill(text, tone){ return '<span class="pill pill-' + tone + '">' + text + '</span>'; }
+function starsHtml(rating, size){
+  size = size || 12;
+  let out = '';
+  for (let i = 1; i <= 5; i++){
+    out += '<span class="star' + (i <= Math.round(rating) ? '' : ' off') + '" style="font-size:' + size + 'px;">★</span>';
+  }
+  return out;
+}
+
+function renderExamples(){
+  const list = document.getElementById('exampleList');
+  list.innerHTML = Object.keys(PRODUCTS).map(id => {
+    const p = PRODUCTS[id];
+    return '<button class="example-card" onclick="openCheck(\'' + id + '\')" style="border:1px solid var(--border);background:var(--surface);width:100%;">' +
+      '<div class="example-thumb">' + p.emoji + '</div>' +
+      '<div class="example-meta">' +
+        '<span class="example-handle">' + p.post.handle + ' on ' + p.post.platform + '</span>' +
+        '<span class="example-caption">' + p.post.caption.replace(/^"|"$/g,'') + '</span>' +
+      '</div>' +
+    '</button>';
+  }).join('');
+}
+
+function renderCheck(id){
+  const p = PRODUCTS[id];
+  document.getElementById('postCard').innerHTML =
+    '<div class="row-between">' +
+      '<div style="display:flex;flex-direction:column;">' +
+        '<span class="review-name">' + p.post.handle + ' · ' + p.post.followers + '</span>' +
+        '<span class="helpful">' + p.post.bio + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="tag-row">' +
+      (p.post.credentialFlag ? pill('No medical or nutrition credential listed', 'amber') : '') +
+      (p.post.sponsored ? pill('Sponsored', 'gray') : '') +
+    '</div>' +
+    '<div class="thumb-box">' + p.post.platform + ' video thumbnail</div>' +
+    '<div class="quote-box">' + p.post.caption + '</div>' +
+    '<div class="helpful">Tagged product: ' + p.name + ' — ' + p.brand + '</div>';
+
+  document.getElementById('claimsCard').innerHTML =
+    '<div class="row-between">' +
+      '<span style="font-size:14px;font-weight:600;">Claim vs evidence</span>' +
+      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
+    '</div>' +
+    p.claims.map((c, i) =>
+      (i > 0 ? '<div class="divider"></div>' : '') +
+      '<div class="claim-row">' +
+        '<div class="claim-top"><span class="claim-title">' + c.claim + '</span>' + pill(c.verdict, c.tone) + '</div>' +
+        '<span class="claim-note">' + c.note + '</span>' +
+      '</div>'
+    ).join('') +
+    '<a class="link-out" href="#" onclick="return false;">See sources →</a>';
+
+  document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
+}
+
+function reviewHtml(r){
+  return '<div class="review-head">' +
+      '<div class="avatar" style="background:' + r.bg + ';color:' + r.fg + ';">' + r.initials + '</div>' +
+      '<div style="display:flex;flex-direction:column;">' +
+        '<span class="review-name">' + r.name + '</span>' +
+        '<div class="stars">' + starsHtml(r.rating, 10) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<span class="review-body">' + r.body + '</span>' +
+    '<div class="tag-row">' + pill(r.tag, r.tagTone) + '</div>' +
+    '<span class="helpful">👍 ' + r.helpful + ' found this helpful</span>';
+}
+
+function renderProduct(id){
+  const p = PRODUCTS[id];
+  document.getElementById('p-brand').textContent = p.brand;
+  document.getElementById('p-name').textContent = p.name;
+  document.getElementById('p-price').textContent = p.price;
+
+  document.getElementById('p-claimsCard').innerHTML =
+    '<div class="row-between">' +
+      '<span style="font-size:14px;font-weight:600;">Claim vs evidence</span>' +
+      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
+    '</div>' +
+    p.claims.map((c, i) =>
+      (i > 0 ? '<div class="divider"></div>' : '') +
+      '<div class="claim-row">' +
+        '<div class="claim-top"><span class="claim-title">' + c.claim + '</span>' + pill(c.verdict, c.tone) + '</div>' +
+        '<span class="claim-note">' + c.note + '</span>' +
+      '</div>'
+    ).join('') +
+    '<a class="link-out" href="#" onclick="return false;">See sources →</a>';
+
+  document.getElementById('p-avg').textContent = p.avgRating.toFixed(1);
+  document.getElementById('p-avgStars').innerHTML = starsHtml(p.avgRating, 12);
+  document.getElementById('p-count').textContent = p.reviewCount + ' reviews';
+  document.getElementById('p-bars').innerHTML = [5,4,3,2,1].map((label, i) =>
+    '<div class="bar-row"><span>' + label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + p.barPcts[i] + '%;"></div></div></div>'
+  ).join('');
+
+  document.getElementById('p-reviewCard').innerHTML = reviewHtml(p.review);
+}
+
+function show(screenId){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function openCheck(id){
+  currentId = id;
+  renderCheck(id);
+  screenStack.push('screen-check');
+  show('screen-check');
+}
+
+function checkPastedLink(){
+  openCheck(currentId || 'collagen');
+}
+
+function openProductFromCheck(){
+  renderProduct(currentId);
+  screenStack.push('screen-product');
+  show('screen-product');
+}
+
+function goBack(){
+  if (screenStack.length > 1) screenStack.pop();
+  show(screenStack[screenStack.length - 1]);
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+renderExamples();
+</script>
+
+</body>
+</html>
