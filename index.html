@@ -101,9 +101,9 @@
   .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .upload-preview-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
-  .chip{border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;
-    padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);}
-  .chip:hover{border-color:var(--brand);color:var(--brand-dark);}
+  .chip{border:1px solid var(--brand-light);background:var(--brand-light);border-radius:999px;
+    padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--brand-dark);}
+  .chip:hover,.chip:active{background:var(--brand);border-color:var(--brand);color:#fff;}
   .btn-primary{
     background:var(--accent);color:var(--accent-on);border:none;border-radius:14px;
     padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;width:100%;
@@ -556,25 +556,40 @@ function renderScreenshotChips(){
   const el = document.getElementById('screenshotChips');
   el.innerHTML = Object.keys(PRODUCTS).map(id => {
     const p = PRODUCTS[id];
-    return '<button class="chip" onclick="openCheck(\'' + id + '\')">' + p.emoji + ' ' + p.name + '</button>';
+    return '<button class="chip" onclick="openCheck(\'' + id + '\')">' + p.emoji + ' ' + p.name + ' →</button>';
   }).join('');
 }
 
+function suggestionChipsHtml(){
+  return '<div class="chip-row" style="padding:10px 2px 6px;">' + Object.keys(PRODUCTS).map(id => {
+    const p = PRODUCTS[id];
+    return '<button class="chip" onclick="openProductDirect(\'' + id + '\')">' + p.emoji + ' ' + p.name + ' →</button>';
+  }).join('') + '</div>';
+}
+
 function filterBrands(){
-  const q = document.getElementById('brandInput').value.trim().toLowerCase();
+  const raw = document.getElementById('brandInput').value.trim();
+  const q = raw.toLowerCase();
   const el = document.getElementById('brandResults');
+
   if (!q){
-    el.innerHTML = '<div class="empty-state">Start typing a brand or product name…</div>';
+    el.innerHTML = '<div class="empty-state">Start typing a brand or product name…</div>' + suggestionChipsHtml();
     return;
   }
+
+  const words = q.split(/\s+/).filter(w => w.length >= 3);
   const ids = Object.keys(PRODUCTS).filter(id => {
     const p = PRODUCTS[id];
-    return (p.brand + ' ' + p.name).toLowerCase().includes(q);
+    const haystack = (p.brand + ' ' + p.name + ' ' + (p.keywords || []).join(' ')).toLowerCase();
+    if (haystack.includes(q)) return true;
+    return words.some(w => haystack.includes(w));
   });
+
   if (!ids.length){
-    el.innerHTML = '<div class="empty-state">No matches yet — try collagen, creatine, magnesium, or greens.</div>';
+    el.innerHTML = '<div class="empty-state">No matches for "' + raw + '" — try one of these instead:</div>' + suggestionChipsHtml();
     return;
   }
+
   el.innerHTML = ids.map(id => {
     const p = PRODUCTS[id];
     return '<button class="list-row" onclick="openProductDirect(\'' + id + '\')">' +
