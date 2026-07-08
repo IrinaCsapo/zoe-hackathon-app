@@ -1,4 +1,4 @@
-# Receipts (working title) — ZOE Women in Tech Hackathon
+# Vera — ZOE Women in Tech Hackathon
 
 A claim-vs-evidence checker for supplement marketing, built for the ZOE Women in Tech Hackathon (July 2026).
 

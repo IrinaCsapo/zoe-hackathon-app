@@ -3,37 +3,40 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<title>Receipts — check the claim, not just the caption</title>
+<title>Vera — check the claim, not just the caption</title>
 <style>
   :root{
-    --bg:#EDE7DF;
-    --app-bg:#FAF6F1;
+    --bg-grad:linear-gradient(135deg, #EAF9F1 0%, #F1ECFB 50%, #FDEEE6 100%);
+    --app-bg:#FCFBFF;
     --surface:#FFFFFF;
-    --surface-alt:#F3EEE6;
-    --border:#E6DFD4;
-    --border-strong:#D8CFC0;
-    --text:#1A1A1A;
-    --text-secondary:#6B6660;
-    --text-muted:#9C9690;
-    --accent:#D85A30;
-    --accent-on:#FDF2ED;
-    --accent-text:#993C1D;
-    --teal-bg:#E1F5EE;
-    --teal-text:#085041;
-    --amber-bg:#FAEEDA;
-    --amber-text:#633806;
-    --red-bg:#FCEBEB;
-    --red-text:#791F1F;
-    --gray-bg:#F0EBE2;
-    --gray-text:#6B6660;
-    --star:#EF9F27;
+    --surface-alt:#F3F0FA;
+    --border:#EAE6F5;
+    --border-strong:#D9D2EE;
+    --text:#1A1A1F;
+    --text-secondary:#6C6778;
+    --text-muted:#9C97AB;
+    --brand:#7B4FE8;
+    --brand-dark:#5F35C9;
+    --brand-light:#F1ECFD;
+    --accent:#E8562C;
+    --accent-on:#FFF6F2;
+    --accent-text:#C2431E;
+    --teal-bg:#DFF7F2;
+    --teal-text:#0C6B5D;
+    --amber-bg:#FFF3DC;
+    --amber-text:#8A5A00;
+    --red-bg:#FFE7EA;
+    --red-text:#B3273A;
+    --gray-bg:#F1EEF8;
+    --gray-text:#6E6980;
+    --star:#F5A623;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
   body{
     margin:0;
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--bg);
+    background:var(--bg-grad);
     color:var(--text);
   }
   .page{
@@ -55,7 +58,7 @@
       width:390px;
       border-radius:32px;
       border:1px solid var(--border-strong);
-      box-shadow:0 20px 50px rgba(0,0,0,0.12);
+      box-shadow:0 20px 50px rgba(90,60,180,0.16);
       overflow:hidden;
     }
   }
@@ -65,13 +68,16 @@
             max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   }
   .screen.active{display:flex;}
+  #screen-home{background:linear-gradient(180deg, var(--brand-light) 0%, var(--app-bg) 230px);}
   .statusbar{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-secondary);}
   .statusbar b{color:var(--text);font-weight:600;}
   .nav{display:flex;justify-content:space-between;align-items:center;}
   .nav button.icon-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);padding:4px;line-height:1;}
   .nav .title{font-size:15px;font-weight:600;}
-  .wordmark{font-size:26px;font-weight:700;letter-spacing:-0.01em;}
-  .tagline{font-size:13px;color:var(--text-secondary);margin-top:-8px;}
+  .brand-row{display:flex;align-items:flex-end;gap:5px;}
+  .brand-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);margin-bottom:9px;flex-shrink:0;}
+  .wordmark{font-size:30px;font-weight:800;letter-spacing:-0.02em;color:var(--brand);}
+  .tagline{font-size:13px;color:var(--text-secondary);margin-top:2px;}
   .search-row{display:flex;gap:8px;}
   .search-row input{
     flex:1;border:1px solid var(--border-strong);background:var(--surface);
@@ -80,9 +86,14 @@
   .search-row input::placeholder{color:var(--text-muted);}
   .btn-primary{
     background:var(--accent);color:var(--accent-on);border:none;border-radius:14px;
-    padding:13px;font-size:14.5px;font-weight:600;cursor:pointer;width:100%;
+    padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;width:100%;
   }
   .btn-primary:active{opacity:0.85;}
+  .btn-secondary{
+    background:var(--brand);color:#fff;border:none;border-radius:14px;
+    padding:13px;font-size:14.5px;font-weight:700;cursor:pointer;width:100%;
+  }
+  .btn-secondary:active{opacity:0.85;}
   .section-label{font-size:13px;font-weight:600;color:var(--text-secondary);margin-top:4px;}
   .example-card{
     background:var(--surface);border:1px solid var(--border);border-radius:16px;
@@ -112,10 +123,10 @@
   .claim-title{font-size:12.5px;font-weight:600;}
   .claim-note{font-size:11.5px;color:var(--text-secondary);line-height:1.4;}
   .divider{height:1px;background:var(--border);}
-  .link-out{font-size:12px;font-weight:600;color:var(--accent-text);text-decoration:none;}
+  .link-out{font-size:12px;font-weight:700;color:var(--brand-dark);text-decoration:none;}
   .product-img{height:190px;border-radius:16px;background:var(--surface-alt);border:1px solid var(--border);
     display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;}
-  .brand-label{font-size:11px;font-weight:600;letter-spacing:0.02em;color:var(--accent-text);}
+  .brand-label{font-size:11px;font-weight:700;letter-spacing:0.02em;color:var(--brand-dark);}
   .product-name{font-size:19px;font-weight:700;}
   .price-row{font-size:13px;color:var(--text-secondary);}
   .rating-summary{display:flex;gap:20px;align-items:center;}
@@ -141,8 +152,18 @@
   .list-meta{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
   .list-title{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .list-sub{font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .list-chevron{color:var(--text-muted);font-size:14px;flex-shrink:0;}
+  .list-chevron{color:var(--brand);font-size:14px;flex-shrink:0;font-weight:700;}
   .empty-state{font-size:12px;color:var(--text-muted);padding:14px 2px;text-align:center;}
+  .score-banner{border-radius:14px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .score-banner-teal{background:var(--teal-bg);}
+  .score-banner-amber{background:var(--amber-bg);}
+  .score-banner-red{background:var(--red-bg);}
+  .score-banner-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;display:block;opacity:0.85;}
+  .score-banner-value{font-size:28px;font-weight:800;line-height:1;display:block;margin-top:2px;}
+  .score-banner-tag{font-size:11px;font-weight:700;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,0.65);white-space:nowrap;}
+  .score-banner-teal .score-banner-label,.score-banner-teal .score-banner-value,.score-banner-teal .score-banner-tag{color:var(--teal-text);}
+  .score-banner-amber .score-banner-label,.score-banner-amber .score-banner-value,.score-banner-amber .score-banner-tag{color:var(--amber-text);}
+  .score-banner-red .score-banner-label,.score-banner-red .score-banner-value,.score-banner-red .score-banner-tag{color:var(--red-text);}
   .toast{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
     background:var(--text);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;
@@ -160,8 +181,11 @@
   <section class="screen active" id="screen-home">
     <div class="statusbar"><b>9:41</b><span>Wi-Fi 100%</span></div>
     <div>
-      <div class="wordmark">Receipts</div>
-      <div class="tagline">Show your receipts.</div>
+      <div class="brand-row">
+        <span class="brand-dot" aria-hidden="true"></span>
+        <span class="wordmark">Vera</span>
+      </div>
+      <div class="tagline">The truth behind the hype.</div>
     </div>
     <div class="search-row">
       <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…" />
@@ -188,6 +212,7 @@
     </div>
 
     <div class="card" id="postCard"></div>
+    <div id="claimsBanner"></div>
     <div class="card" id="claimsCard"></div>
 
     <div class="row-between">
@@ -214,6 +239,7 @@
       <span class="price-row" id="p-price"></span>
     </div>
 
+    <div id="p-claimsBanner"></div>
     <div class="card" id="p-claimsCard"></div>
 
     <div class="card rating-summary">
@@ -225,7 +251,7 @@
       <div class="bars" id="p-bars"></div>
     </div>
 
-    <button class="btn-primary" onclick="showToast('Reviews open once your account is set up')">Write a review</button>
+    <button class="btn-secondary" onclick="showToast('Reviews open once your account is set up')">Write a review</button>
 
     <div class="row-between">
       <span class="section-label" style="margin:0;">Recent reviews</span>
@@ -369,6 +395,12 @@ let currentId = "collagen";
 let screenStack = ["screen-home"];
 
 function pill(text, tone){ return '<span class="pill pill-' + tone + '">' + text + '</span>'; }
+function scoreBanner(p){
+  return '<div class="score-banner score-banner-' + p.scoreTone + '">' +
+    '<div><span class="score-banner-label">Claim score</span><span class="score-banner-value">' + p.score + '</span></div>' +
+    '<span class="score-banner-tag">' + p.scoreLabel + '</span>' +
+  '</div>';
+}
 function starsHtml(rating, size){
   size = size || 12;
   let out = '';
@@ -456,11 +488,9 @@ function renderCheck(id){
     '<div class="quote-box">' + p.post.caption + '</div>' +
     '<div class="helpful">Tagged product: ' + p.name + ' — ' + p.brand + '</div>';
 
+  document.getElementById('claimsBanner').innerHTML = scoreBanner(p);
+
   document.getElementById('claimsCard').innerHTML =
-    '<div class="row-between">' +
-      '<span style="font-size:14px;font-weight:600;">Claim score</span>' +
-      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
-    '</div>' +
     p.claims.map((c, i) =>
       (i > 0 ? '<div class="divider"></div>' : '') +
       '<div class="claim-row">' +
@@ -492,11 +522,9 @@ function renderProduct(id){
   document.getElementById('p-name').textContent = p.name;
   document.getElementById('p-price').textContent = p.price;
 
+  document.getElementById('p-claimsBanner').innerHTML = scoreBanner(p);
+
   document.getElementById('p-claimsCard').innerHTML =
-    '<div class="row-between">' +
-      '<span style="font-size:14px;font-weight:600;">Claim score</span>' +
-      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
-    '</div>' +
     p.claims.map((c, i) =>
       (i > 0 ? '<div class="divider"></div>' : '') +
       '<div class="claim-row">' +
