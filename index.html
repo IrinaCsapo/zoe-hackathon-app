@@ -245,6 +245,7 @@
         <input type="text" id="brandInput" placeholder="Search by brand or product name…" oninput="filterBrands()" />
       </div>
       <div class="list-card" id="brandResults"></div>
+      <div id="dsldResults"></div>
     </div>
 
     <div class="section-label">Recently checked</div>
@@ -327,6 +328,7 @@ const PRODUCTS = {
     price: "£32.00 · 30 servings",
     emoji: "✨",
     keywords: ["collagen", "glowwithella", "glowco", "marine collagen"],
+    sourceQuery: "marine collagen peptides skin elasticity clinical trial",
     post: {
       platform: "TikTok",
       handle: "@glowwithella",
@@ -358,6 +360,7 @@ const PRODUCTS = {
     price: "£19.00 · 60 servings",
     emoji: "⚡",
     keywords: ["creatine", "fitfuel_jess", "peakform"],
+    sourceQuery: "creatine monohydrate cognitive performance strength",
     post: {
       platform: "Instagram",
       handle: "@fitfuel_jess",
@@ -389,6 +392,7 @@ const PRODUCTS = {
     price: "£28.00 · 60 capsules",
     emoji: "🌙",
     keywords: ["magnesium", "sleepy.sabine", "wild nutrition", "wildnutrition", "glycinate"],
+    sourceQuery: "magnesium glycinate sleep quality anxiety",
     post: {
       platform: "Instagram",
       handle: "@sleepy.sabine",
@@ -420,6 +424,7 @@ const PRODUCTS = {
     price: "£34.00 · 30 servings",
     emoji: "🥬",
     keywords: ["greens", "rise.with.remi", "verdant", "daily greens"],
+    sourceQuery: "greens powder supplement energy bloating gut",
     post: {
       platform: "TikTok",
       handle: "@rise.with.remi",
@@ -474,6 +479,120 @@ function starsHtml(rating, size){
     out += '<span class="star' + (i <= Math.round(rating) ? '' : ' off') + '" style="font-size:' + size + 'px;">★</span>';
   }
   return out;
+}
+
+// ---- Live data helpers (OpenAlex + NIH DSLD) ----
+// Both calls are wrapped with a timeout and fail silently: if the network,
+// CORS, or rate limit misbehaves, the app falls back to the static curated
+// content exactly as before. Nothing here is allowed to block or break the UI.
+
+function fetchWithTimeout(url, ms){
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms || 6000);
+  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+function openAlexSearchUrl(query){
+  return 'https://openalex.org/works?search=' + encodeURIComponent(query);
+}
+
+function sourceRowHtml(p, countId){
+  return '<div class="source-row">' +
+    '<a class="link-out" href="' + openAlexSearchUrl(p.sourceQuery) + '" target="_blank" rel="noopener">See sources on OpenAlex →</a>' +
+    '<span class="source-count" id="' + countId + '"></span>' +
+  '</div>';
+}
+
+async function loadStudyCount(product, targetId){
+  const el = document.getElementById(targetId);
+  if (!el || !product.sourceQuery) return;
+  try {
+    const url = 'https://api.openalex.org/works?search=' + encodeURIComponent(product.sourceQuery) + '&per-page=1';
+    const res = await fetchWithTimeout(url, 6000);
+    if (!res.ok) return;
+    const data = await res.json();
+    const count = data && data.meta && typeof data.meta.count === 'number' ? data.meta.count : null;
+    if (count !== null && document.getElementById(targetId)){
+      el.textContent = count.toLocaleString() + ' related studies on OpenAlex';
+      el.classList.add('show');
+    }
+  } catch (e) {
+    // silent — the link above still works, we just skip the live count
+  }
+}
+
+async function fetchDsldResults(query){
+  const url = 'https://dsldapi.od.nih.gov/v9/search-filter?q=' + encodeURIComponent(query) + '&size=4';
+  const res = await fetchWithTimeout(url, 6000);
+  if (!res.ok) throw new Error('DSLD request failed: ' + res.status);
+  const data = await res.json();
+  const hits = (data && data.hits) || [];
+  return hits.map(h => {
+    const s = h._source || {};
+    return {
+      id: h._id,
+      name: s.fullName || s.productName || '',
+      brand: s.brandName || ''
+    };
+  }).filter(r => r.name);
+}
+
+let dsldRequestToken = 0;
+async function renderDsldSection(query){
+  const container = document.getElementById('dsldResults');
+  if (!container) return;
+  const trimmed = (query || '').trim();
+  if (trimmed.length < 3){
+    container.innerHTML = '';
+    return;
+  }
+  const myToken = ++dsldRequestToken;
+  container.innerHTML = '<div class="empty-state">Searching the real NIH supplement database…</div>';
+  try {
+    const results = await fetchDsldResults(trimmed);
+    if (myToken !== dsldRequestToken) return;
+    if (!results.length){
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = '<div class="section-label" style="margin-top:2px;">From the real supplement database (NIH DSLD)</div>' +
+      '<div class="list-card">' + results.map(r =>
+        '<button class="list-row" onclick="expandDsldResult(\'' + r.id + '\', this)">' +
+          '<div class="list-thumb">🧪</div>' +
+          '<div class="list-meta"><span class="list-title">' + r.name + '</span><span class="list-sub">' + (r.brand || 'Unknown brand') + '</span></div>' +
+          pill('Real data', 'gray') +
+        '</button>'
+      ).join('') + '</div>';
+  } catch (e) {
+    if (myToken !== dsldRequestToken) return;
+    container.innerHTML = '';
+  }
+}
+
+async function expandDsldResult(id, btnEl){
+  const next = btnEl.nextElementSibling;
+  if (next && next.classList && next.classList.contains('dsld-detail')){
+    next.remove();
+    return;
+  }
+  const panel = document.createElement('div');
+  panel.className = 'dsld-detail empty-state';
+  panel.textContent = 'Loading real label data…';
+  btnEl.insertAdjacentElement('afterend', panel);
+  try {
+    const res = await fetchWithTimeout('https://dsldapi.od.nih.gov/v9/label/' + encodeURIComponent(id), 6000);
+    if (!res.ok) throw new Error('label fetch failed');
+    const data = await res.json();
+    const ingredients = ((data && data.ingredientRows) || []).slice(0, 6).map(r => r.name).filter(Boolean);
+    panel.className = 'dsld-detail card';
+    panel.innerHTML =
+      '<span class="claim-title">Ingredients (real NIH label data)</span>' +
+      '<span class="claim-note">' + (ingredients.length ? ingredients.join(', ') : 'No ingredient breakdown listed for this label') + '</span>' +
+      '<span class="helpful">Evidence scoring isn\'t available for this product yet — it\'s not in our curated library.</span>';
+  } catch (e) {
+    panel.className = 'dsld-detail empty-state';
+    panel.textContent = "Couldn't load real label data right now.";
+  }
 }
 
 function getRecent(){
@@ -628,7 +747,9 @@ function renderCheck(id){
         '<span class="claim-note">' + c.note + '</span>' +
       '</div>'
     ).join('') +
-    '<a class="link-out" href="#" onclick="return false;">See sources →</a>';
+    sourceRowHtml(p, 'studyCount-check');
+
+  loadStudyCount(p, 'studyCount-check');
 
   document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
 }
@@ -662,7 +783,9 @@ function renderProduct(id){
         '<span class="claim-note">' + c.note + '</span>' +
       '</div>'
     ).join('') +
-    '<a class="link-out" href="#" onclick="return false;">See sources →</a>';
+    sourceRowHtml(p, 'studyCount-product');
+
+  loadStudyCount(p, 'studyCount-product');
 
   document.getElementById('p-avg').textContent = p.avgRating.toFixed(1);
   document.getElementById('p-avgStars').innerHTML = starsHtml(p.avgRating, 12);
