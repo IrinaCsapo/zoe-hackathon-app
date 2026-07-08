@@ -189,6 +189,16 @@
   .list-thumb img{width:100%;height:100%;object-fit:cover;border-radius:9px;}
   .list-thumb .thumb-fallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:var(--surface-alt);}
   .off-detail-photo{width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:2px;}
+
+  .value-stats{display:flex;gap:10px;}
+  .value-stat{flex:1;display:flex;flex-direction:column;gap:3px;}
+  .value-stat-label{font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);}
+  .value-stat-num{font-size:18px;font-weight:800;}
+  .value-stat-accent{color:var(--teal-text);}
+  .value-verdict-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--surface-alt);border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:600;}
+  .evidence-stats{display:flex;gap:10px;}
+  .evidence-stat{flex:1;background:var(--surface-alt);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;}
   .list-meta{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
   .list-title{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .list-sub{font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -303,6 +313,9 @@
     <div id="claimsBanner"></div>
     <div class="card" id="claimsCard"></div>
 
+    <div class="card" id="evidenceCard"></div>
+    <div class="card" id="valueCard"></div>
+
     <div class="row-between">
       <span class="section-label" style="margin:0;">What real reviewers say</span>
     </div>
@@ -332,6 +345,9 @@
 
     <div id="p-claimsBanner"></div>
     <div class="card" id="p-claimsCard"></div>
+
+    <div class="card" id="p-evidenceCard"></div>
+    <div class="card" id="p-valueCard"></div>
 
     <div class="card rating-summary">
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:64px;">
@@ -366,6 +382,7 @@ const PRODUCTS = {
     brand: "GlowCo",
     name: "Radiant Collagen Peptides",
     price: "£32.00 · 30 servings",
+    priceValue: 32, servings: 30, currency: "£",
     emoji: "✨",
     keywords: ["collagen", "glowwithella", "glowco", "marine collagen"],
     sourceQuery: "marine collagen peptides skin elasticity clinical trial",
@@ -382,9 +399,9 @@ const PRODUCTS = {
     scoreLabel: "Mixed evidence",
     scoreTone: "amber",
     claims: [
-      { claim: "Visibly improves skin in 2 weeks", verdict: "Limited evidence", tone: "amber",
+      { claim: "Visibly improves skin in 2 weeks", verdict: "Limited evidence", tone: "amber", confidence: "Low",
         note: "Most collagen-and-skin studies run 8–12 weeks — no peer-reviewed data shows visible change this fast" },
-      { claim: "Reduces fine lines and wrinkles", verdict: "Moderate evidence", tone: "teal",
+      { claim: "Reduces fine lines and wrinkles", verdict: "Moderate evidence", tone: "teal", confidence: "Moderate",
         note: "Meta-analyses show modest improvement after 8–12 weeks of daily use" }
     ],
     avgRating: 3.8,
@@ -398,6 +415,7 @@ const PRODUCTS = {
     brand: "PeakForm",
     name: "Creatine Monohydrate 5g",
     price: "£19.00 · 60 servings",
+    priceValue: 19, servings: 60, currency: "£",
     emoji: "⚡",
     keywords: ["creatine", "fitfuel_jess", "peakform"],
     sourceQuery: "creatine monohydrate cognitive performance strength",
@@ -414,9 +432,9 @@ const PRODUCTS = {
     scoreLabel: "Backed",
     scoreTone: "teal",
     claims: [
-      { claim: "Improves strength and power output", verdict: "Strong evidence", tone: "teal",
+      { claim: "Improves strength and power output", verdict: "Strong evidence", tone: "teal", confidence: "High",
         note: "One of the most well-studied supplements in sports science — consistent results across 500+ trials" },
-      { claim: "Sharpens focus and memory", verdict: "Limited evidence", tone: "amber",
+      { claim: "Sharpens focus and memory", verdict: "Limited evidence", tone: "amber", confidence: "Low",
         note: "Early studies show a modest cognitive effect under sleep-deprived conditions only — not general daily focus" }
     ],
     avgRating: 4.5,
@@ -430,6 +448,7 @@ const PRODUCTS = {
     brand: "Wild Nutrition",
     name: "Magnesium Glycinate 400mg",
     price: "£28.00 · 60 capsules",
+    priceValue: 28, servings: 60, currency: "£",
     emoji: "🌙",
     keywords: ["magnesium", "sleepy.sabine", "wild nutrition", "wildnutrition", "glycinate"],
     sourceQuery: "magnesium glycinate sleep quality anxiety",
@@ -446,9 +465,9 @@ const PRODUCTS = {
     scoreLabel: "Backed",
     scoreTone: "teal",
     claims: [
-      { claim: "Marketed for better sleep", verdict: "Moderate evidence", tone: "teal",
+      { claim: "Marketed for better sleep", verdict: "Moderate evidence", tone: "teal", confidence: "Moderate",
         note: "Backed by 3 peer-reviewed studies on magnesium and sleep quality" },
-      { claim: "Reduces stress and anxiety", verdict: "Limited evidence", tone: "amber",
+      { claim: "Reduces stress and anxiety", verdict: "Limited evidence", tone: "amber", confidence: "Low",
         note: "Only 1 small study (n=42) — effect size unclear" }
     ],
     avgRating: 4.3,
@@ -462,6 +481,7 @@ const PRODUCTS = {
     brand: "Verdant",
     name: "Daily Greens Blend",
     price: "£34.00 · 30 servings",
+    priceValue: 34, servings: 30, currency: "£",
     emoji: "🥬",
     keywords: ["greens", "rise.with.remi", "verdant", "daily greens"],
     sourceQuery: "greens powder supplement energy bloating gut",
@@ -478,9 +498,9 @@ const PRODUCTS = {
     scoreLabel: "Weak evidence",
     scoreTone: "red",
     claims: [
-      { claim: "Boosts all-day energy", verdict: "Weak evidence", tone: "red",
+      { claim: "Boosts all-day energy", verdict: "Weak evidence", tone: "red", confidence: "Low",
         note: "No controlled trials on this specific blend — individual ingredients show mixed results at these doses" },
-      { claim: "Eliminates bloating", verdict: "Weak evidence", tone: "red",
+      { claim: "Eliminates bloating", verdict: "Weak evidence", tone: "red", confidence: "Low",
         note: "No published studies support this claim for the product as formulated" }
     ],
     avgRating: 3.1,
@@ -494,6 +514,7 @@ const PRODUCTS = {
     brand: "ZOE",
     name: "Daily30+",
     price: "£39.00/mo · 30 servings (verify current price before presenting)",
+    priceValue: 39, servings: 30, currency: "£",
     emoji: "🌱",
     keywords: ["daily30", "daily30+", "zoe", "30 plants", "prebiotic"],
     sourceQuery: "dietary fiber diversity gut microbiome randomized controlled trial",
@@ -510,9 +531,9 @@ const PRODUCTS = {
     scoreLabel: "Strongly backed",
     scoreTone: "teal",
     claims: [
-      { claim: "Improves digestion", verdict: "Strong evidence", tone: "teal",
+      { claim: "Improves digestion", verdict: "Strong evidence", tone: "teal", confidence: "High",
         note: "From ZOE's own peer-reviewed, publicly registered randomised controlled trial — 69% of participants reported improved digestion" },
-      { claim: "Increases energy", verdict: "Strong evidence", tone: "teal",
+      { claim: "Increases energy", verdict: "Strong evidence", tone: "teal", confidence: "High",
         note: "51% of the same RCT's participants reported increased energy after daily use" }
     ],
     avgRating: 4.6,
@@ -526,6 +547,7 @@ const PRODUCTS = {
     brand: "Calm Roots",
     name: "Ashwagandha KSM-66 600mg",
     price: "£22.00 · 60 capsules",
+    priceValue: 22, servings: 60, currency: "£",
     emoji: "🧘",
     keywords: ["ashwagandha", "zenwithzara", "calm roots", "ksm-66", "ashwaganda"],
     sourceQuery: "ashwagandha KSM-66 cortisol stress randomized controlled trial",
@@ -542,9 +564,9 @@ const PRODUCTS = {
     scoreLabel: "Moderate evidence",
     scoreTone: "amber",
     claims: [
-      { claim: "Reduces stress and cortisol levels", verdict: "Moderate evidence", tone: "amber",
+      { claim: "Reduces stress and cortisol levels", verdict: "Moderate evidence", tone: "amber", confidence: "Moderate",
         note: "Several small RCTs show modest cortisol reduction with KSM-66 extract over 8 weeks — more long-term research needed" },
-      { claim: "Comparable to prescription anti-anxiety medication", verdict: "Weak evidence", tone: "red",
+      { claim: "Comparable to prescription anti-anxiety medication", verdict: "Weak evidence", tone: "red", confidence: "Low",
         note: "No clinical trials compare ashwagandha directly to prescription anxiolytics — this claim isn't supported by the evidence" }
     ],
     avgRating: 3.9,
@@ -570,6 +592,49 @@ let currentId = "collagen";
 let screenStack = ["screen-home"];
 
 function pill(text, tone){ return '<span class="pill pill-' + tone + '">' + text + '</span>'; }
+
+// "Evidence-adjusted" value tier: price alone doesn't tell you if something's
+// a good deal — a cheap product with no evidence behind it still isn't worth
+// buying, and a pricier one can be fair value if the evidence is strong.
+// Rule (kept simple enough to say out loud): weak evidence (red) is always
+// flagged Overpriced regardless of cost; moderate evidence (amber) is only
+// Overpriced above £2/dose; strong evidence (teal) is Good value under
+// £2/dose and still Fair value above it.
+function valueTier(p, perDose){
+  if (p.scoreTone === 'red') return { tier: 'Overpriced', tone: 'red' };
+  if (p.scoreTone === 'amber') return perDose < 2 ? { tier: 'Fair value', tone: 'amber' } : { tier: 'Overpriced', tone: 'red' };
+  return perDose < 2 ? { tier: 'Good value', tone: 'teal' } : { tier: 'Fair value', tone: 'amber' };
+}
+
+function valueAnalysisHtml(p){
+  const perDose = p.priceValue / p.servings;
+  const t = valueTier(p, perDose);
+  return '<span class="section-label" style="margin:0;">💰 Value analysis</span>' +
+    '<div class="value-stats">' +
+      '<div class="value-stat"><span class="value-stat-label">Price</span><span class="value-stat-num">' + p.currency + p.priceValue.toFixed(2) + '</span></div>' +
+      '<div class="value-stat"><span class="value-stat-label">Servings</span><span class="value-stat-num">' + p.servings + '</span></div>' +
+      '<div class="value-stat"><span class="value-stat-label">Per dose</span><span class="value-stat-num value-stat-accent">' + p.currency + perDose.toFixed(2) + '</span></div>' +
+    '</div>' +
+    '<div class="value-verdict-row"><span>Evidence-adjusted rating</span>' + pill(t.tier, t.tone) + '</div>';
+}
+
+// Highlights the ONE claim most tied to what the post actually said (the
+// caption), rather than repeating the full claims list above. Strength =
+// size/consistency of the effect; Confidence = how much we trust the studies
+// behind it — two different questions, same split GRADE (the real clinical
+// evidence-grading framework) uses, and the same distinction from the Claim
+// Score rubric.
+function evidenceSummaryHtml(p){
+  const c = p.claims[0];
+  return '<span class="section-label" style="margin:0;">🔎 Evidence summary</span>' +
+    '<div class="quote-box">"' + p.post.caption.replace(/^"|"$/g, '') + '"</div>' +
+    '<span class="claim-note">' + c.note + '</span>' +
+    '<div class="evidence-stats">' +
+      '<div class="evidence-stat"><span class="value-stat-label">Strength</span><span class="value-stat-num">' + c.verdict.replace(' evidence', '') + '</span></div>' +
+      '<div class="evidence-stat"><span class="value-stat-label">Confidence</span><span class="value-stat-num">' + c.confidence + '</span></div>' +
+    '</div>' +
+    '<span class="helpful">ⓘ Individual responses can vary — this reflects average results across the cited studies, not a guarantee.</span>';
+}
 function scoreBanner(p){
   return '<div class="score-banner score-banner-' + p.scoreTone + '">' +
     '<div><span class="score-banner-label">Claim score</span><span class="score-banner-value">' + p.score + '</span></div>' +
@@ -1100,6 +1165,9 @@ function renderCheck(id){
 
   loadStudyCount(p, 'studyCount-check');
 
+  document.getElementById('evidenceCard').innerHTML = evidenceSummaryHtml(p);
+  document.getElementById('valueCard').innerHTML = valueAnalysisHtml(p);
+
   document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
   renderHigherScored(id);
 }
@@ -1136,6 +1204,9 @@ function renderProduct(id){
     sourceRowHtml(p, 'studyCount-product');
 
   loadStudyCount(p, 'studyCount-product');
+
+  document.getElementById('p-evidenceCard').innerHTML = evidenceSummaryHtml(p);
+  document.getElementById('p-valueCard').innerHTML = valueAnalysisHtml(p);
 
   document.getElementById('p-avg').textContent = p.avgRating.toFixed(1);
   document.getElementById('p-avgStars').innerHTML = starsHtml(p.avgRating, 12);
