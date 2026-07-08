@@ -100,6 +100,8 @@
   .upload-preview img{width:52px;height:52px;object-fit:cover;border-radius:10px;flex-shrink:0;}
   .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .upload-preview-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .ocr-row{display:none;flex-direction:column;gap:10px;}
+  .ocr-row.active{display:flex;}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{border:1px solid var(--brand-light);background:var(--brand-light);border-radius:999px;
     padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--brand-dark);}
@@ -239,9 +241,19 @@
         <img id="uploadPreviewImg" alt="Uploaded screenshot preview" />
         <div class="upload-preview-meta">
           <span class="upload-preview-name" id="uploadPreviewName"></span>
-          <span class="helpful">Which product is this?</span>
+          <span class="helpful" id="ocrStatus"></span>
         </div>
       </div>
+
+      <div class="ocr-row" id="ocrRow">
+        <div class="search-row">
+          <input type="text" id="ocrInput" placeholder="Reading text from image…"
+            onkeydown="if(event.key==='Enter'){searchOcrText();}" />
+        </div>
+        <button class="btn-primary" onclick="searchOcrText()">Search this text</button>
+      </div>
+
+      <span class="section-label" style="margin-top:4px;">Or pick the product directly</span>
       <div class="chip-row" id="screenshotChips"></div>
     </div>
 
@@ -325,6 +337,11 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Real client-side OCR, no server, no key. Loaded deferred so it never
+     blocks page rendering; every place that uses it checks it actually
+     loaded before relying on it. -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
 
 <script>
 const PRODUCTS = {
@@ -743,7 +760,29 @@ function showInputTab(name){
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
 }
 
-function handleScreenshot(input){
+function withTimeout(promise, ms){
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(null), ms))
+  ]);
+}
+
+// Real OCR, entirely client-side (Tesseract.js, WebAssembly). Returns null
+// on any failure — missing library, bad image, timeout — never throws, so
+// callers can always safely fall back to the manual "pick a product" chips.
+async function runOcr(file){
+  if (typeof Tesseract === 'undefined') return null;
+  try {
+    const worker = await Tesseract.createWorker('eng');
+    const result = await worker.recognize(file);
+    await worker.terminate();
+    return (result && result.data && result.data.text) ? result.data.text : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+async function handleScreenshot(input){
   const file = input.files && input.files[0];
   if (!file) return;
   const url = URL.createObjectURL(file);
@@ -751,6 +790,46 @@ function handleScreenshot(input){
   document.getElementById('uploadPreviewName').textContent = file.name;
   document.getElementById('uploadPreview').classList.add('active');
   renderScreenshotChips();
+
+  const ocrRow = document.getElementById('ocrRow');
+  const ocrInput = document.getElementById('ocrInput');
+  const ocrStatus = document.getElementById('ocrStatus');
+  ocrRow.classList.add('active');
+  ocrInput.value = '';
+  ocrInput.disabled = true;
+  ocrInput.placeholder = 'Reading text from image…';
+  ocrStatus.textContent = 'Reading text from the image…';
+
+  const text = await withTimeout(runOcr(file), 15000);
+  ocrInput.disabled = false;
+
+  if (text && text.trim().length > 2){
+    const cleaned = text.trim().replace(/\s+/g, ' ').slice(0, 220);
+    ocrInput.value = cleaned;
+    ocrInput.placeholder = 'Caption or product name…';
+    ocrStatus.textContent = 'Text found — review it below, then search';
+  } else {
+    ocrInput.placeholder = "Couldn't read text automatically — type it here";
+    ocrStatus.textContent = 'No text recognised — you can type it manually below, or pick a product directly';
+  }
+}
+
+function searchOcrText(){
+  const raw = document.getElementById('ocrInput').value.trim();
+  if (!raw){
+    showToast('Type or wait for text, then search');
+    return;
+  }
+  const matched = matchProduct(raw);
+  if (matched){
+    openCheck(matched);
+    return;
+  }
+  showInputTab('brand');
+  const brandInput = document.getElementById('brandInput');
+  brandInput.value = raw;
+  filterBrands();
+  showToast('Not in our curated library — searching real databases…');
 }
 
 function renderScreenshotChips(){
