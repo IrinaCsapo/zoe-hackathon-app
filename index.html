@@ -214,6 +214,10 @@
   .score-banner-teal .score-banner-label,.score-banner-teal .score-banner-value,.score-banner-teal .score-banner-tag{color:var(--teal-text);}
   .score-banner-amber .score-banner-label,.score-banner-amber .score-banner-value,.score-banner-amber .score-banner-tag{color:var(--amber-text);}
   .score-banner-red .score-banner-label,.score-banner-red .score-banner-value,.score-banner-red .score-banner-tag{color:var(--red-text);}
+  .score-banner-gray{background:var(--gray-bg);}
+  .score-banner-gray .score-banner-label,.score-banner-gray .score-banner-value,.score-banner-gray .score-banner-tag{color:var(--gray-text);}
+  .unverified-photo{width:100%;max-height:220px;border-radius:12px;overflow:hidden;background:var(--surface-alt);border:1px solid var(--border);}
+  .unverified-photo img{width:100%;height:100%;max-height:220px;object-fit:cover;display:block;}
   .toast{
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
     background:var(--text);color:#fff;font-size:13px;padding:10px 18px;border-radius:999px;
@@ -324,7 +328,7 @@
     <span class="section-label" style="margin-top:4px;">Higher scored products</span>
     <div class="hscroll" id="higherScoredScroll"></div>
 
-    <button class="btn-primary" onclick="openProductFromCheck()">See full product page</button>
+    <button class="btn-primary" id="checkCta" onclick="handleCheckCta()">See full product page</button>
   </section>
 
   <!-- PRODUCT PAGE -->
@@ -590,6 +594,9 @@ const SAMPLE_LINKS = [
 
 let currentId = "collagen";
 let screenStack = ["screen-home"];
+let currentIsUnverified = false;
+let lastUploadedImageUrl = null;
+let lastUnverifiedQuery = "";
 
 function pill(text, tone){ return '<span class="pill pill-' + tone + '">' + text + '</span>'; }
 
@@ -986,6 +993,7 @@ function handleScreenshot(input){
   const file = input.files && input.files[0];
   if (!file) return;
   const url = URL.createObjectURL(file);
+  lastUploadedImageUrl = url;
   document.getElementById('uploadPreviewImg').src = url;
   document.getElementById('uploadPreviewName').textContent = file.name;
   document.getElementById('uploadPreview').classList.add('active');
@@ -1053,11 +1061,11 @@ function searchOcrText(){
     openCheck(matched);
     return;
   }
-  showInputTab('brand');
-  const brandInput = document.getElementById('brandInput');
-  brandInput.value = raw;
-  filterBrands();
-  showToast('Not in our curated library — searching real databases…');
+  // Not in the curated library — instead of guessing at a score we don't
+  // have evidence for, show exactly what the image contained (including the
+  // image itself) and offer real-database search as a separate, opt-in step.
+  openUnverifiedCheck(raw, lastUploadedImageUrl);
+  showToast("Not in our curated library — here's what your image showed");
 }
 
 function renderScreenshotChips(){
@@ -1170,6 +1178,77 @@ function renderCheck(id){
 
   document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
   renderHigherScored(id);
+
+  const cta = document.getElementById('checkCta');
+  if (cta) cta.textContent = 'See full product page';
+}
+
+// A product OCR found but that we can't match against anything we actually
+// evidence-check (curated library, DSLD, Open Food Facts). We still show
+// real information — the exact image the user uploaded and the exact text
+// we read from it — but we never invent a Claim Score for it. That's the
+// line: real data or clearly-labelled "not yet checked", never a guess
+// dressed up as a score.
+function renderUnverifiedCheck(fullText, imageUrl){
+  const cleaned = (fullText || '').trim();
+  const lines = cleaned.split(/\n+/).map(l => l.trim()).filter(Boolean);
+  // Best-effort guess at a headline only — OCR line order varies by image,
+  // so this is never asserted as fact; the full text is always shown too.
+  const headline = lines[0] || 'Unrecognised product';
+
+  document.getElementById('postCard').innerHTML =
+    (imageUrl ? '<div class="unverified-photo"><img src="' + imageUrl + '" alt="Uploaded product image" /></div>' : '') +
+    '<span class="claim-title">' + headline + '</span>' +
+    '<div class="tag-row">' + pill('From your image', 'gray') + pill('Not yet verified', 'gray') + '</div>';
+
+  document.getElementById('claimsBanner').innerHTML =
+    '<div class="score-banner score-banner-gray">' +
+      '<div><span class="score-banner-label">Claim score</span><span class="score-banner-value">—</span></div>' +
+      '<span class="score-banner-tag">Not yet evidence-checked</span>' +
+    '</div>';
+
+  document.getElementById('claimsCard').innerHTML =
+    '<div class="claim-row">' +
+      '<span class="claim-title">What we read from your image</span>' +
+      '<span class="claim-note">' + (cleaned || 'No readable text found.') + '</span>' +
+    '</div>' +
+    '<span class="helpful">This isn\'t in our curated library, NIH DSLD, or Open Food Facts, so we can\'t score it against evidence yet — this is exactly what your image showed, unedited.</span>';
+
+  document.getElementById('evidenceCard').innerHTML = '';
+  document.getElementById('valueCard').innerHTML = '';
+  document.getElementById('reviewCard').innerHTML = '<div class="empty-state">No reviews on file for this product yet.</div>';
+
+  renderHigherScored('__unverified__');
+
+  const cta = document.getElementById('checkCta');
+  if (cta) cta.textContent = 'Search real databases for this →';
+}
+
+function openUnverifiedCheck(fullText, imageUrl){
+  currentIsUnverified = true;
+  const firstLine = (fullText || '').trim().split(/\n+/)[0];
+  lastUnverifiedQuery = firstLine || fullText || '';
+  renderUnverifiedCheck(fullText, imageUrl);
+  screenStack.push('screen-check');
+  show('screen-check');
+}
+
+function handleCheckCta(){
+  if (currentIsUnverified){
+    searchRealDatabasesForUnverified();
+    return;
+  }
+  openProductFromCheck();
+}
+
+function searchRealDatabasesForUnverified(){
+  screenStack = ['screen-home'];
+  show('screen-home');
+  showInputTab('brand');
+  const brandInput = document.getElementById('brandInput');
+  if (brandInput) brandInput.value = lastUnverifiedQuery;
+  filterBrands();
+  showToast('Searching NIH DSLD and Open Food Facts…');
 }
 
 function reviewHtml(r){
@@ -1230,6 +1309,7 @@ function show(screenId){
 
 function openCheck(id){
   currentId = id;
+  currentIsUnverified = false;
   renderCheck(id);
   pushRecent(id, 'check');
   screenStack.push('screen-check');
@@ -1238,6 +1318,7 @@ function openCheck(id){
 
 function openProductDirect(id){
   currentId = id;
+  currentIsUnverified = false;
   renderProduct(id);
   pushRecent(id, 'product');
   screenStack.push('screen-product');
