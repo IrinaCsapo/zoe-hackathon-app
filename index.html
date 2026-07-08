@@ -185,7 +185,10 @@
   .list-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:2px 12px;display:flex;flex-direction:column;}
   .list-row{display:flex;align-items:center;gap:10px;padding:10px 0;background:none;border:none;border-top:1px solid var(--border);width:100%;text-align:left;cursor:pointer;}
   .list-row:first-child{border-top:none;}
-  .list-thumb{width:36px;height:36px;border-radius:9px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+  .list-thumb{width:36px;height:36px;border-radius:9px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;}
+  .list-thumb img{width:100%;height:100%;object-fit:cover;border-radius:9px;}
+  .list-thumb .thumb-fallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:var(--surface-alt);}
+  .off-detail-photo{width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:2px;}
   .list-meta{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
   .list-title{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .list-sub{font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -226,7 +229,7 @@
     </div>
     <div class="input-tabs">
       <button class="tab-btn active" data-tab="link" onclick="showInputTab('link')">Link</button>
-      <button class="tab-btn" data-tab="screenshot" onclick="showInputTab('screenshot')">Screenshot</button>
+      <button class="tab-btn" data-tab="screenshot" onclick="showInputTab('screenshot')">Image</button>
       <button class="tab-btn" data-tab="brand" onclick="showInputTab('brand')">Brand</button>
     </div>
 
@@ -242,25 +245,26 @@
 
     <div class="tab-panel" id="tab-screenshot">
       <label class="upload-drop" id="uploadDrop">
-        <span class="upload-icon">📷</span>
-        <span class="upload-title">Upload a screenshot</span>
+        <span class="upload-icon">🖼️</span>
+        <span class="upload-title">Upload an image</span>
         <span class="upload-hint">A saved post, a caption, a product label — any image</span>
         <input type="file" accept="image/*" id="screenshotInput" onchange="handleScreenshot(this)" />
       </label>
       <div class="upload-preview" id="uploadPreview">
-        <img id="uploadPreviewImg" alt="Uploaded screenshot preview" />
+        <img id="uploadPreviewImg" alt="Uploaded image preview" />
         <div class="upload-preview-meta">
           <span class="upload-preview-name" id="uploadPreviewName"></span>
-          <span class="helpful" id="ocrStatus"></span>
+          <span class="helpful" id="ocrStatus">Ready to analyse</span>
         </div>
       </div>
+      <button class="btn-primary" id="analyseBtn" onclick="analyseImage()" style="display:none;">Analyse product</button>
 
       <div class="ocr-row" id="ocrRow">
         <div class="search-row">
           <input type="text" id="ocrInput" placeholder="Reading text from image…"
             onkeydown="if(event.key==='Enter'){searchOcrText();}" />
         </div>
-        <button class="btn-primary" onclick="searchOcrText()">Search this text</button>
+        <button class="btn-secondary" onclick="searchOcrText()">Search this text</button>
       </div>
 
       <span class="section-label" style="margin-top:4px;">Or pick the product directly</span>
@@ -621,6 +625,21 @@ async function loadStudyCount(product, targetId){
   }
 }
 
+// Small shared helper: real photo if we have one, emoji fallback if the
+// image is missing OR fails to load (broken URL, hotlink block, etc).
+function thumbHtml(imageUrl, fallbackEmoji){
+  if (!imageUrl) return '<div class="list-thumb">' + fallbackEmoji + '</div>';
+  return '<div class="list-thumb">' +
+    '<img src="' + imageUrl + '" alt="" loading="lazy" onerror="imgFallback(this)" />' +
+    '<span class="thumb-fallback">' + fallbackEmoji + '</span>' +
+  '</div>';
+}
+function imgFallback(imgEl){
+  imgEl.style.display = 'none';
+  const fb = imgEl.nextElementSibling;
+  if (fb) fb.style.display = 'flex';
+}
+
 async function fetchDsldResults(query){
   const url = 'https://dsldapi.od.nih.gov/v9/search-filter?q=' + encodeURIComponent(query) + '&size=4';
   const res = await fetchWithTimeout(url, 6000);
@@ -632,7 +651,11 @@ async function fetchDsldResults(query){
     return {
       id: h._id,
       name: s.fullName || s.productName || '',
-      brand: s.brandName || ''
+      brand: s.brandName || '',
+      // DSLD labels rarely have a thumbnail populated (it's a government
+      // label-text database, not a photo library) — use it when present,
+      // fall back to the flask icon otherwise.
+      image: s.thumbnail || ''
     };
   }).filter(r => r.name);
 }
@@ -658,7 +681,7 @@ async function renderDsldSection(query){
     container.innerHTML = '<div class="section-label" style="margin-top:2px;">From the real supplement database (NIH DSLD)</div>' +
       '<div class="list-card">' + results.map(r =>
         '<button class="list-row" onclick="expandDsldResult(\'' + r.id + '\', this)">' +
-          '<div class="list-thumb">🧪</div>' +
+          thumbHtml(r.image, '🧪') +
           '<div class="list-meta"><span class="list-title">' + r.name + '</span><span class="list-sub">' + (r.brand || 'Unknown brand') + '</span></div>' +
           pill('Real data', 'gray') +
         '</button>'
@@ -707,7 +730,10 @@ async function fetchOffResults(query){
   return products.map(p => ({
     code: p.code || '',
     name: p.product_name || p.generic_name || '',
-    brand: p.brands || ''
+    brand: p.brands || '',
+    // OFF is crowd-photographed, so most listed products do have a real
+    // front-of-pack photo — prefer the small variant (fast to load in a list row).
+    image: p.image_front_small_url || p.image_front_url || p.image_url || ''
   })).filter(r => r.name && r.code);
 }
 
@@ -732,7 +758,7 @@ async function renderOffSection(query){
     container.innerHTML = '<div class="section-label" style="margin-top:2px;">From Open Food Facts (global, crowd-sourced)</div>' +
       '<div class="list-card">' + results.map(r =>
         '<button class="list-row" onclick="expandOffResult(\'' + r.code + '\', this)">' +
-          '<div class="list-thumb">🌍</div>' +
+          thumbHtml(r.image, '🌍') +
           '<div class="list-meta"><span class="list-title">' + r.name + '</span><span class="list-sub">' + (r.brand || 'Unknown brand') + '</span></div>' +
           pill('Real data', 'gray') +
         '</button>'
@@ -754,14 +780,16 @@ async function expandOffResult(code, btnEl){
   panel.textContent = 'Loading real product data…';
   btnEl.insertAdjacentElement('afterend', panel);
   try {
-    const url = 'https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) + '.json?fields=product_name,brands,ingredients_text';
+    const url = 'https://world.openfoodfacts.org/api/v2/product/' + encodeURIComponent(code) + '.json?fields=product_name,brands,ingredients_text,image_front_url,image_url';
     const res = await fetchWithTimeout(url, 6000);
     if (!res.ok) throw new Error('product fetch failed');
     const data = await res.json();
     const prod = (data && data.product) || {};
     const ingredientsText = prod.ingredients_text || '';
+    const photoUrl = prod.image_front_url || prod.image_url || '';
     panel.className = 'off-detail card';
     panel.innerHTML =
+      (photoUrl ? '<img src="' + photoUrl + '" alt="" class="off-detail-photo" onerror="this.remove()" />' : '') +
       '<span class="claim-title">Ingredients (Open Food Facts)</span>' +
       '<span class="claim-note">' + (ingredientsText ? ingredientsText.slice(0, 240) : 'No ingredient list on file for this product') + '</span>' +
       '<span class="helpful">Evidence scoring isn\'t available for this product yet — it\'s not in our curated library.</span>';
@@ -859,18 +887,43 @@ async function runOcr(file){
   }
 }
 
-async function handleScreenshot(input){
+function handleScreenshot(input){
   const file = input.files && input.files[0];
   if (!file) return;
   const url = URL.createObjectURL(file);
   document.getElementById('uploadPreviewImg').src = url;
   document.getElementById('uploadPreviewName').textContent = file.name;
   document.getElementById('uploadPreview').classList.add('active');
-  renderScreenshotChips();
+  document.getElementById('ocrStatus').textContent = 'Ready to analyse';
 
+  // Reset any previous run — picking a new file means starting over.
+  document.getElementById('ocrRow').classList.remove('active');
+  document.getElementById('ocrInput').value = '';
+  const analyseBtn = document.getElementById('analyseBtn');
+  analyseBtn.style.display = 'block';
+  analyseBtn.disabled = false;
+  analyseBtn.textContent = 'Analyse product';
+
+  renderScreenshotChips();
+}
+
+// Explicit user action (the "Analyse product" button) rather than firing on
+// file select — gives people a moment to see what they uploaded before we
+// run OCR + search on it.
+async function analyseImage(){
+  const file = document.getElementById('screenshotInput').files && document.getElementById('screenshotInput').files[0];
+  if (!file){
+    showToast('Upload an image first');
+    return;
+  }
+
+  const analyseBtn = document.getElementById('analyseBtn');
   const ocrRow = document.getElementById('ocrRow');
   const ocrInput = document.getElementById('ocrInput');
   const ocrStatus = document.getElementById('ocrStatus');
+
+  analyseBtn.disabled = true;
+  analyseBtn.textContent = 'Analysing…';
   ocrRow.classList.add('active');
   ocrInput.value = '';
   ocrInput.disabled = true;
@@ -879,15 +932,18 @@ async function handleScreenshot(input){
 
   const text = await withTimeout(runOcr(file), 15000);
   ocrInput.disabled = false;
+  analyseBtn.disabled = false;
+  analyseBtn.textContent = 'Analyse product';
 
   if (text && text.trim().length > 2){
     const cleaned = text.trim().replace(/\s+/g, ' ').slice(0, 220);
     ocrInput.value = cleaned;
     ocrInput.placeholder = 'Caption or product name…';
-    ocrStatus.textContent = 'Text found — review it below, then search';
+    ocrStatus.textContent = 'Text found — searching…';
+    searchOcrText();
   } else {
     ocrInput.placeholder = "Couldn't read text automatically — type it here";
-    ocrStatus.textContent = 'No text recognised — you can type it manually below, or pick a product directly';
+    ocrStatus.textContent = 'No text recognised — type it manually below, or pick a product directly';
   }
 }
 
