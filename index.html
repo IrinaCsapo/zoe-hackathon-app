@@ -144,6 +144,11 @@
   .claim-note{font-size:11.5px;color:var(--text-secondary);line-height:1.4;}
   .divider{height:1px;background:var(--border);}
   .link-out{font-size:12px;font-weight:700;color:var(--brand-dark);text-decoration:none;}
+  .source-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .source-count{display:none;font-size:11px;color:var(--text-muted);}
+  .source-count.show{display:inline;}
+  .dsld-detail{margin-top:-4px;}
+  .dsld-detail.card{gap:6px;border-top:none;border-top-left-radius:0;border-top-right-radius:0;}
   .product-img{height:190px;border-radius:16px;background:var(--surface-alt);border:1px solid var(--border);
     display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;}
   .brand-label{font-size:11px;font-weight:700;letter-spacing:0.02em;color:var(--brand-dark);}
@@ -690,6 +695,7 @@ function filterBrands(){
   const raw = document.getElementById('brandInput').value.trim();
   const q = raw.toLowerCase();
   const el = document.getElementById('brandResults');
+  renderDsldSection(raw);
 
   if (!q){
     el.innerHTML = '<div class="empty-state">Start typing a brand or product name…</div>' + suggestionChipsHtml();
