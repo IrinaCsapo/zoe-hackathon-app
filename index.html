@@ -100,8 +100,6 @@
   .upload-preview img{width:52px;height:52px;object-fit:cover;border-radius:10px;flex-shrink:0;}
   .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
   .upload-preview-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .ocr-row{display:none;flex-direction:column;gap:10px;}
-  .ocr-row.active{display:flex;}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{border:1px solid var(--brand-light);background:var(--brand-light);border-radius:999px;
     padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;color:var(--brand-dark);}
@@ -151,14 +149,16 @@
   .source-count.show{display:inline;}
   .hscroll{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
   .hscroll::-webkit-scrollbar{display:none;}
-  .hscroll-card{flex:0 0 auto;width:126px;background:var(--surface);border:1px solid var(--border);
-    border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:5px;cursor:pointer;text-align:left;}
+  .hscroll-card{flex:0 0 auto;width:150px;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:6px;cursor:pointer;text-align:left;}
   .hscroll-card:hover{border-color:var(--border-strong);}
-  .hscroll-thumb{width:100%;height:60px;border-radius:10px;background:var(--surface-alt);
-    display:flex;align-items:center;justify-content:center;font-size:24px;}
+  .hscroll-thumb{width:100%;height:108px;border-radius:10px;background:var(--surface-alt);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;}
+  .hscroll-thumb svg{width:80%;height:80%;}
   .hscroll-brand{font-size:10px;font-weight:600;color:var(--text-secondary);}
   .hscroll-name{font-size:11.5px;font-weight:600;line-height:1.3;
     display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:29px;}
+  .hscroll-sub{font-size:10.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .dsld-detail,.off-detail{margin-top:-4px;}
   .dsld-detail.card,.off-detail.card{gap:6px;border-top:none;border-top-left-radius:0;border-top-right-radius:0;}
   .product-img{height:190px;border-radius:16px;background:var(--surface-alt);border:1px solid var(--border);
@@ -273,14 +273,6 @@
       </div>
       <button class="btn-primary" id="analyseBtn" onclick="analyseImage()" style="display:none;">Analyse product</button>
 
-      <div class="ocr-row" id="ocrRow">
-        <div class="search-row">
-          <input type="text" id="ocrInput" placeholder="Reading text from image…"
-            onkeydown="if(event.key==='Enter'){searchOcrText();}" />
-        </div>
-        <button class="btn-secondary" onclick="searchOcrText()">Search this text</button>
-      </div>
-
       <span class="section-label" style="margin-top:4px;">Or pick the product directly</span>
       <div class="chip-row" id="screenshotChips"></div>
     </div>
@@ -295,10 +287,10 @@
     </div>
 
     <div class="section-label">Recently checked</div>
-    <div class="list-card" id="recentList"></div>
+    <div class="hscroll" id="recentList"></div>
 
     <div class="section-label">Top scored by the community</div>
-    <div class="list-card" id="topScoredList"></div>
+    <div class="hscroll" id="topScoredList"></div>
 
     <div class="section-label">Or try a trending check</div>
     <div id="exampleList" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -386,7 +378,7 @@ const PRODUCTS = {
     brand: "GlowCo",
     name: "Radiant Collagen Peptides",
     price: "£32.00 · 30 servings",
-    priceValue: 32, servings: 30, currency: "£",
+    priceValue: 32, servings: 30, currency: "£", artShape: "jar",
     emoji: "✨",
     keywords: ["collagen", "glowwithella", "glowco", "marine collagen"],
     sourceQuery: "marine collagen peptides skin elasticity clinical trial",
@@ -419,7 +411,7 @@ const PRODUCTS = {
     brand: "PeakForm",
     name: "Creatine Monohydrate 5g",
     price: "£19.00 · 60 servings",
-    priceValue: 19, servings: 60, currency: "£",
+    priceValue: 19, servings: 60, currency: "£", artShape: "jar",
     emoji: "⚡",
     keywords: ["creatine", "fitfuel_jess", "peakform"],
     sourceQuery: "creatine monohydrate cognitive performance strength",
@@ -452,7 +444,7 @@ const PRODUCTS = {
     brand: "Wild Nutrition",
     name: "Magnesium Glycinate 400mg",
     price: "£28.00 · 60 capsules",
-    priceValue: 28, servings: 60, currency: "£",
+    priceValue: 28, servings: 60, currency: "£", artShape: "bottle",
     emoji: "🌙",
     keywords: ["magnesium", "sleepy.sabine", "wild nutrition", "wildnutrition", "glycinate"],
     sourceQuery: "magnesium glycinate sleep quality anxiety",
@@ -485,7 +477,7 @@ const PRODUCTS = {
     brand: "Verdant",
     name: "Daily Greens Blend",
     price: "£34.00 · 30 servings",
-    priceValue: 34, servings: 30, currency: "£",
+    priceValue: 34, servings: 30, currency: "£", artShape: "pouch",
     emoji: "🥬",
     keywords: ["greens", "rise.with.remi", "verdant", "daily greens"],
     sourceQuery: "greens powder supplement energy bloating gut",
@@ -518,7 +510,7 @@ const PRODUCTS = {
     brand: "ZOE",
     name: "Daily30+",
     price: "£39.00/mo · 30 servings (verify current price before presenting)",
-    priceValue: 39, servings: 30, currency: "£",
+    priceValue: 39, servings: 30, currency: "£", artShape: "pouch",
     emoji: "🌱",
     keywords: ["daily30", "daily30+", "zoe", "30 plants", "prebiotic"],
     sourceQuery: "dietary fiber diversity gut microbiome randomized controlled trial",
@@ -551,7 +543,7 @@ const PRODUCTS = {
     brand: "Calm Roots",
     name: "Ashwagandha KSM-66 600mg",
     price: "£22.00 · 60 capsules",
-    priceValue: 22, servings: 60, currency: "£",
+    priceValue: 22, servings: 60, currency: "£", artShape: "bottle",
     emoji: "🧘",
     keywords: ["ashwagandha", "zenwithzara", "calm roots", "ksm-66", "ashwaganda"],
     sourceQuery: "ashwagandha KSM-66 cortisol stress randomized controlled trial",
@@ -599,6 +591,37 @@ let lastUploadedImageUrl = null;
 let lastUnverifiedQuery = "";
 
 function pill(text, tone){ return '<span class="pill pill-' + tone + '">' + text + '</span>'; }
+
+// Custom flat packaging illustration, not a real photo — several of these
+// curated brand names could collide with real companies (e.g. "Wild
+// Nutrition" is real), so attaching an invented score to a real product
+// photo isn't a risk worth taking for a demo. This is fast, on-brand, and
+// scales to any new product without sourcing an image at all. Tinted by the
+// product's evidence tier so the card signals it before you even read the pill.
+function productArtSvg(p){
+  const TONE = {
+    teal: { body: '#CDEFE7', body2: '#9FDDC9' },
+    amber: { body: '#FDECC7', body2: '#F8D488' },
+    red: { body: '#FBD3D7', body2: '#F3AEB5' }
+  };
+  const c = TONE[p.scoreTone] || TONE.teal;
+  const shape = p.artShape || 'jar';
+  let art;
+  if (shape === 'bottle'){
+    art = '<rect x="41" y="8" width="18" height="12" rx="3" fill="' + c.body2 + '"/>' +
+          '<rect x="28" y="20" width="44" height="68" rx="12" fill="' + c.body + '"/>';
+  } else if (shape === 'pouch'){
+    art = '<rect x="33" y="10" width="34" height="12" rx="4" fill="' + c.body2 + '"/>' +
+          '<rect x="20" y="20" width="60" height="68" rx="16" fill="' + c.body + '"/>';
+  } else {
+    art = '<rect x="30" y="12" width="40" height="10" rx="3" fill="' + c.body2 + '"/>' +
+          '<rect x="18" y="20" width="64" height="66" rx="10" fill="' + c.body + '"/>';
+  }
+  return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="' + p.name + ' packaging illustration">' +
+    art +
+    '<text x="50" y="60" text-anchor="middle" font-size="28">' + p.emoji + '</text>' +
+  '</svg>';
+}
 
 // "Evidence-adjusted" value tier: price alone doesn't tell you if something's
 // a good deal — a cheap product with no evidence behind it still isn't worth
@@ -931,7 +954,7 @@ function renderRecent(){
   const el = document.getElementById('recentList');
   const list = getRecent();
   if (!list.length){
-    el.innerHTML = '<div class="empty-state">Nothing checked yet — try an example below.</div>';
+    el.innerHTML = '<div class="empty-state" style="flex:1;">Nothing checked yet — try an example below.</div>';
     return;
   }
   el.innerHTML = list.map(r => {
@@ -939,11 +962,11 @@ function renderRecent(){
     if (!p) return '';
     const sub = r.mode === 'check' ? (p.post.handle + ' · ' + p.post.platform) : (p.brand + ' · product page');
     const action = r.mode === 'check' ? "openCheck('" + r.id + "')" : "openProductDirect('" + r.id + "')";
-    return '<button class="list-row" onclick="' + action + '">' +
-      '<div class="list-thumb">' + p.emoji + '</div>' +
-      '<div class="list-meta"><span class="list-title">' + p.name + '</span><span class="list-sub">' + sub + '</span></div>' +
+    return '<button class="hscroll-card" onclick="' + action + '">' +
+      '<div class="hscroll-thumb">' + productArtSvg(p) + '</div>' +
+      '<span class="hscroll-name">' + p.name + '</span>' +
+      '<span class="hscroll-sub">' + sub + '</span>' +
       pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
-      '<span class="list-chevron">›</span>' +
     '</button>';
   }).join('');
 }
@@ -953,11 +976,11 @@ function renderTopScored(){
   const ids = Object.keys(PRODUCTS).sort((a, b) => PRODUCTS[b].score - PRODUCTS[a].score);
   el.innerHTML = ids.map(id => {
     const p = PRODUCTS[id];
-    return '<button class="list-row" onclick="openProductDirect(\'' + id + '\')">' +
-      '<div class="list-thumb">' + p.emoji + '</div>' +
-      '<div class="list-meta"><span class="list-title">' + p.name + '</span><span class="list-sub">' + p.brand + ' · ' + p.avgRating.toFixed(1) + '★ (' + p.reviewCount + ')</span></div>' +
+    return '<button class="hscroll-card" onclick="openProductDirect(\'' + id + '\')">' +
+      '<div class="hscroll-thumb">' + productArtSvg(p) + '</div>' +
+      '<span class="hscroll-name">' + p.name + '</span>' +
+      '<span class="hscroll-sub">' + p.brand + ' · ' + p.avgRating.toFixed(1) + '★ (' + p.reviewCount + ')</span>' +
       pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
-      '<span class="list-chevron">›</span>' +
     '</button>';
   }).join('');
 }
@@ -1000,8 +1023,6 @@ function handleScreenshot(input){
   document.getElementById('ocrStatus').textContent = 'Ready to analyse';
 
   // Reset any previous run — picking a new file means starting over.
-  document.getElementById('ocrRow').classList.remove('active');
-  document.getElementById('ocrInput').value = '';
   const analyseBtn = document.getElementById('analyseBtn');
   analyseBtn.style.display = 'block';
   analyseBtn.disabled = false;
@@ -1021,39 +1042,29 @@ async function analyseImage(){
   }
 
   const analyseBtn = document.getElementById('analyseBtn');
-  const ocrRow = document.getElementById('ocrRow');
-  const ocrInput = document.getElementById('ocrInput');
   const ocrStatus = document.getElementById('ocrStatus');
 
   analyseBtn.disabled = true;
   analyseBtn.textContent = 'Analysing…';
-  ocrRow.classList.add('active');
-  ocrInput.value = '';
-  ocrInput.disabled = true;
-  ocrInput.placeholder = 'Reading text from image…';
   ocrStatus.textContent = 'Reading text from the image…';
 
   const text = await withTimeout(runOcr(file), 15000);
-  ocrInput.disabled = false;
   analyseBtn.disabled = false;
   analyseBtn.textContent = 'Analyse product';
 
   if (text && text.trim().length > 2){
     const cleaned = text.trim().replace(/\s+/g, ' ').slice(0, 220);
-    ocrInput.value = cleaned;
-    ocrInput.placeholder = 'Caption or product name…';
     ocrStatus.textContent = 'Text found — searching…';
-    searchOcrText();
+    searchOcrText(cleaned);
   } else {
-    ocrInput.placeholder = "Couldn't read text automatically — type it here";
-    ocrStatus.textContent = 'No text recognised — type it manually below, or pick a product directly';
+    ocrStatus.textContent = 'No text recognised — pick a product directly below, or search by brand';
   }
 }
 
-function searchOcrText(){
-  const raw = document.getElementById('ocrInput').value.trim();
+function searchOcrText(raw){
+  raw = (raw || '').trim();
   if (!raw){
-    showToast('Type or wait for text, then search');
+    showToast('No readable text to search');
     return;
   }
   const matched = matchProduct(raw);
@@ -1134,7 +1145,7 @@ function renderHigherScored(currentId){
   el.innerHTML = ids.map(id => {
     const p = PRODUCTS[id];
     return '<button class="hscroll-card" onclick="openProductDirect(\'' + id + '\')">' +
-      '<div class="hscroll-thumb">' + p.emoji + '</div>' +
+      '<div class="hscroll-thumb">' + productArtSvg(p) + '</div>' +
       '<span class="hscroll-brand">' + p.brand + '</span>' +
       '<span class="hscroll-name">' + p.name + '</span>' +
       pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
