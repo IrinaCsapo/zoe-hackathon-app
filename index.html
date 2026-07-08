@@ -149,6 +149,16 @@
   .source-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .source-count{display:none;font-size:11px;color:var(--text-muted);}
   .source-count.show{display:inline;}
+  .hscroll{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .hscroll::-webkit-scrollbar{display:none;}
+  .hscroll-card{flex:0 0 auto;width:126px;background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:5px;cursor:pointer;text-align:left;}
+  .hscroll-card:hover{border-color:var(--border-strong);}
+  .hscroll-thumb{width:100%;height:60px;border-radius:10px;background:var(--surface-alt);
+    display:flex;align-items:center;justify-content:center;font-size:24px;}
+  .hscroll-brand{font-size:10px;font-weight:600;color:var(--text-secondary);}
+  .hscroll-name{font-size:11.5px;font-weight:600;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:29px;}
   .dsld-detail,.off-detail{margin-top:-4px;}
   .dsld-detail.card,.off-detail.card{gap:6px;border-top:none;border-top-left-radius:0;border-top-right-radius:0;}
   .product-img{height:190px;border-radius:16px;background:var(--surface-alt);border:1px solid var(--border);
@@ -281,7 +291,7 @@
     <div class="statusbar"><b>9:41</b><span>Wi-Fi 100%</span></div>
     <div class="nav">
       <button class="icon-btn" onclick="goBack()" aria-label="Back">←</button>
-      <span class="title">Check a post</span>
+      <span class="title">Check a product</span>
       <button class="icon-btn" aria-label="Share">↗</button>
     </div>
 
@@ -293,6 +303,9 @@
       <span class="section-label" style="margin:0;">What real reviewers say</span>
     </div>
     <div class="card review-card" id="reviewCard"></div>
+
+    <span class="section-label" style="margin-top:4px;">Higher scored products</span>
+    <div class="hscroll" id="higherScoredScroll"></div>
 
     <button class="btn-primary" onclick="openProductFromCheck()">See full product page</button>
   </section>
@@ -472,6 +485,70 @@ const PRODUCTS = {
     review: { name: "Beth L.", initials: "BL", bg: "#C0DD97", fg: "#173404", rating: 2,
       body: "Tastes fine but I didn't notice any energy difference after a month.",
       tag: "No change", tagTone: "gray", helpful: 14 }
+  },
+  zoe: {
+    brand: "ZOE",
+    name: "Daily30+",
+    price: "£39.00/mo · 30 servings (verify current price before presenting)",
+    emoji: "🌱",
+    keywords: ["daily30", "daily30+", "zoe", "30 plants", "prebiotic"],
+    sourceQuery: "dietary fiber diversity gut microbiome randomized controlled trial",
+    post: {
+      platform: "Instagram",
+      handle: "@zoe",
+      followers: "290K followers",
+      bio: "Bio: \"ZOE — gut health scientists\"",
+      credentialFlag: false,
+      sponsored: false,
+      caption: "\"69% of people in our own randomised controlled trial reported improved digestion after adding Daily30+ to their day\""
+    },
+    score: 91,
+    scoreLabel: "Strongly backed",
+    scoreTone: "teal",
+    claims: [
+      { claim: "Improves digestion", verdict: "Strong evidence", tone: "teal",
+        note: "From ZOE's own peer-reviewed, publicly registered randomised controlled trial — 69% of participants reported improved digestion" },
+      { claim: "Increases energy", verdict: "Strong evidence", tone: "teal",
+        note: "51% of the same RCT's participants reported increased energy after daily use" }
+    ],
+    avgRating: 4.6,
+    reviewCount: 2140,
+    barPcts: [72, 18, 6, 2, 2],
+    review: { name: "Tara W.", initials: "TW", bg: "#FAC775", fg: "#412402", rating: 5,
+      body: "Been adding a scoop to breakfast for a month — genuinely more regular and not as sluggish by mid-afternoon.",
+      tag: "Helped", tagTone: "teal", helpful: 42 }
+  },
+  ashwagandha: {
+    brand: "Calm Roots",
+    name: "Ashwagandha KSM-66 600mg",
+    price: "£22.00 · 60 capsules",
+    emoji: "🧘",
+    keywords: ["ashwagandha", "zenwithzara", "calm roots", "ksm-66", "ashwaganda"],
+    sourceQuery: "ashwagandha KSM-66 cortisol stress randomized controlled trial",
+    post: {
+      platform: "TikTok",
+      handle: "@zenwithzara",
+      followers: "340K followers",
+      bio: "Bio: \"stress & mindset coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"This ashwagandha is basically nature's Xanax, my cortisol has NEVER been this low\""
+    },
+    score: 65,
+    scoreLabel: "Moderate evidence",
+    scoreTone: "amber",
+    claims: [
+      { claim: "Reduces stress and cortisol levels", verdict: "Moderate evidence", tone: "amber",
+        note: "Several small RCTs show modest cortisol reduction with KSM-66 extract over 8 weeks — more long-term research needed" },
+      { claim: "Comparable to prescription anti-anxiety medication", verdict: "Weak evidence", tone: "red",
+        note: "No clinical trials compare ashwagandha directly to prescription anxiolytics — this claim isn't supported by the evidence" }
+    ],
+    avgRating: 3.9,
+    reviewCount: 76,
+    barPcts: [40, 28, 18, 9, 5],
+    review: { name: "Nadia P.", initials: "NP", bg: "#F0997B", fg: "#4A1B0C", rating: 4,
+      body: "Felt a bit calmer within a few weeks, but I wouldn't call it life-changing.",
+      tag: "Helped", tagTone: "teal", helpful: 11 }
   }
 };
 
@@ -883,6 +960,29 @@ function filterBrands(){
   }).join('');
 }
 
+function higherScoredProducts(currentId, limit){
+  limit = limit || 5;
+  const others = Object.keys(PRODUCTS).filter(id => id !== currentId);
+  const pinned = others.includes('zoe') ? ['zoe'] : [];
+  const rest = others.filter(id => id !== 'zoe').sort((a, b) => PRODUCTS[b].score - PRODUCTS[a].score);
+  return pinned.concat(rest).slice(0, limit);
+}
+
+function renderHigherScored(currentId){
+  const el = document.getElementById('higherScoredScroll');
+  if (!el) return;
+  const ids = higherScoredProducts(currentId, 5);
+  el.innerHTML = ids.map(id => {
+    const p = PRODUCTS[id];
+    return '<button class="hscroll-card" onclick="openProductDirect(\'' + id + '\')">' +
+      '<div class="hscroll-thumb">' + p.emoji + '</div>' +
+      '<span class="hscroll-brand">' + p.brand + '</span>' +
+      '<span class="hscroll-name">' + p.name + '</span>' +
+      pill(p.score + ' · ' + p.scoreLabel, p.scoreTone) +
+    '</button>';
+  }).join('');
+}
+
 function renderCheck(id){
   const p = PRODUCTS[id];
   document.getElementById('postCard').innerHTML =
@@ -915,6 +1015,7 @@ function renderCheck(id){
   loadStudyCount(p, 'studyCount-check');
 
   document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
+  renderHigherScored(id);
 }
 
 function reviewHtml(r){
