@@ -282,6 +282,11 @@
   .value-stat-accent{color:var(--teal-text);}
   .value-verdict-row{display:flex;align-items:center;justify-content:space-between;gap:10px;
     background:var(--surface-alt);border-radius:12px;padding:11px 13px;font-size:12.5px;font-weight:600;}
+  .post-photo{border-radius:16px;overflow:hidden;height:320px;background:linear-gradient(145deg,#EAE3F7,#F3ECE6);}
+  .post-photo img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+  .flag-banner{background:var(--amber-bg);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:5px;}
+  .flag-banner-title{font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--amber-text);}
+  .flag-banner-text{font-size:12.5px;line-height:1.5;color:var(--amber-text);}
   .evidence-stats{display:flex;gap:10px;}
   .evidence-stat{flex:1;background:var(--surface-alt);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:3px;}
   .list-meta{display:flex;flex-direction:column;gap:1px;flex:1;min-width:0;}
@@ -413,6 +418,7 @@
     <div class="card" id="postCard"></div>
     <div id="claimsBanner"></div>
     <div class="card" id="claimsCard"></div>
+    <div id="formulationFlag"></div>
 
     <div class="card" id="valueCard"></div>
 
@@ -506,25 +512,30 @@ const PRODUCTS = {
     price: "£32.00 · 30 servings",
     priceValue: 32, servings: 30, currency: "£", artShape: "jar",
     emoji: "✨",
-    keywords: ["collagen", "glowwithella", "glowco", "marine collagen"],
-    sourceQuery: "marine collagen peptides skin elasticity clinical trial",
+    keywords: ["collagen", "hahasabine", "glowco", "marine collagen", "radiant collagen"],
+    sourceQuery: "marine collagen peptides skin elasticity wrinkles clinical trial",
     post: {
       platform: "TikTok",
-      handle: "@glowwithella",
+      handle: "@hahasabine",
       followers: "482K followers",
       bio: "Bio: \"nutrition coach\"",
       credentialFlag: true,
       sponsored: true,
-      caption: "\"This marine collagen literally changed my skin in 2 weeks — code ELLA20 for 20% off\""
+      image: "images/haha-sabine-glowco-radiant-collagen.png",
+      caption: "\"This marine collagen literally changed my skin in 2 weeks — code SABINE20 for 20% off\""
     },
-    score: 58,
+    score: 60,
     scoreLabel: "Mixed evidence",
     scoreTone: "amber",
+    // Ordered worst → best. Collagen peptides have real but slow evidence — the
+    // "2 weeks" hook is the weak part, the longer-term skin claims hold up.
     claims: [
-      { claim: "Visibly improves skin in 2 weeks", verdict: "Limited evidence", tone: "amber", confidence: "Low",
-        note: "Most collagen-and-skin studies run 8–12 weeks — no peer-reviewed data shows visible change this fast" },
+      { claim: "Visible skin change in 2 weeks", verdict: "Limited evidence", tone: "amber", confidence: "Low",
+        note: "Most collagen-and-skin studies run 8–12 weeks — no peer-reviewed data shows visible change this fast." },
       { claim: "Reduces fine lines and wrinkles", verdict: "Moderate evidence", tone: "teal", confidence: "Moderate",
-        note: "Meta-analyses show modest improvement after 8–12 weeks of daily use" }
+        note: "Meta-analyses show modest improvement in wrinkles and elasticity after 8–12 weeks of daily use." },
+      { claim: "Improves skin hydration", verdict: "Moderate evidence", tone: "teal", confidence: "Moderate",
+        note: "Several randomised trials support better skin hydration with 8+ weeks of collagen peptides." }
     ],
     avgRating: 3.8,
     reviewCount: 89,
@@ -548,16 +559,23 @@ const PRODUCTS = {
       bio: "Bio: \"fitness & mindset coach\"",
       credentialFlag: true,
       sponsored: true,
+      image: "images/fitfule-jess_creatine_monohydrate.png",
       caption: "\"Add this to your morning coffee and watch your focus skyrocket — my brain has never felt clearer\""
     },
-    score: 74,
+    score: 78,
     scoreLabel: "Backed",
     scoreTone: "teal",
+    // Ordered worst → best. Creatine monohydrate is genuinely well-evidenced for
+    // strength/muscle; the "focus" hook the post leads with is the weakest claim.
     claims: [
-      { claim: "Improves strength and power output", verdict: "Strong evidence", tone: "teal", confidence: "High",
-        note: "One of the most well-studied supplements in sports science — consistent results across 500+ trials" },
-      { claim: "Sharpens focus and memory", verdict: "Limited evidence", tone: "amber", confidence: "Low",
-        note: "Early studies show a modest cognitive effect under sleep-deprived conditions only — not general daily focus" }
+      { claim: "Skyrockets all-day focus", verdict: "Limited evidence", tone: "amber", confidence: "Low",
+        note: "Creatine's cognitive effect shows up mainly in sleep-deprived or older adults — not the everyday focus boost the post promises." },
+      { claim: "Speeds up muscle recovery", verdict: "Mixed evidence", tone: "amber", confidence: "Moderate",
+        note: "Some recovery markers improve, but the evidence is less consistent than for strength." },
+      { claim: "Increases strength and power", verdict: "Strong evidence", tone: "teal", confidence: "High",
+        note: "One of the most replicated results in sports science — consistent across 500+ trials." },
+      { claim: "Builds lean muscle", verdict: "Strong evidence", tone: "teal", confidence: "High",
+        note: "Reliably supports muscle gain when paired with resistance training." }
     ],
     avgRating: 4.5,
     reviewCount: 143,
@@ -605,12 +623,12 @@ const PRODUCTS = {
     price: "£34.00 · 30 servings",
     priceValue: 34, servings: 30, currency: "£", artShape: "pouch",
     emoji: "🥬",
-    keywords: ["greens", "rise.with.remi", "verdant", "daily greens"],
+    keywords: ["greens", "verdant", "daily greens", "green ritual"],
     sourceQuery: "greens powder supplement energy bloating gut",
     post: {
       platform: "TikTok",
-      handle: "@rise.with.remi",
-      followers: "1.1M followers",
+      handle: "@the.green.ritual",
+      followers: "623K followers",
       bio: "Bio: \"holistic wellness\"",
       credentialFlag: true,
       sponsored: true,
@@ -647,6 +665,7 @@ const PRODUCTS = {
       bio: "Bio: \"ZOE — gut health scientists\"",
       credentialFlag: false,
       sponsored: false,
+      image: "images/zoe.jpg",
       caption: "\"69% of people in our own randomised controlled trial reported improved digestion after adding Daily30+ to their day\""
     },
     score: 91,
@@ -704,26 +723,32 @@ const PRODUCTS = {
     price: "£26.00 · 28 servings",
     priceValue: 26, servings: 28, currency: "£", artShape: "pouch",
     emoji: "🍵",
-    keywords: ["detox tea", "skinny tea", "skinny & glow", "skinny and glow", "lumewell", "slimming tea"],
+    keywords: ["detox tea", "skinny tea", "skinny & glow", "skinny and glow", "lumewell", "slimming tea", "rise.with.remi"],
     sourceQuery: "detox slimming tea weight loss senna randomized controlled trial",
     post: {
       platform: "TikTok",
-      handle: "@detoxwithdemi",
-      followers: "521K followers",
-      bio: "Bio: \"wellness & weight-loss coach\"",
+      handle: "@rise.with.remi",
+      followers: "1.1M followers",
+      bio: "Bio: \"holistic wellness\"",
       credentialFlag: true,
       sponsored: true,
-      caption: "\"Sip this for 14 days and watch the bloat AND the weight melt off — code DEMI15\""
+      image: "images/rise_with_remy_skinny_tea.png",
+      caption: "\"Sip this for 14 days and watch the bloat AND the weight melt off — code REMI15\""
     },
-    score: 26,
-    scoreLabel: "Weak evidence",
+    score: 22,
+    scoreLabel: "Weak",
     scoreTone: "red",
+    // Ordered worst → best. Detox/slimming teas have no evidence for fat loss;
+    // the only real (and temporary) effect is fluid loss from the diuretic/laxative action.
     claims: [
-      { claim: "Melts fat and causes weight loss", verdict: "Weak evidence", tone: "red", confidence: "Low",
-        note: "'Detox' teas act mainly as diuretics and laxatives — the drop on the scale is water weight, not fat, and returns once you rehydrate" },
-      { claim: "Detoxes the body", verdict: "Weak evidence", tone: "red", confidence: "Low",
-        note: "A healthy liver and kidneys already clear waste — no peer-reviewed evidence shows a tea adds any detox benefit" }
+      { claim: "Melts fat and causes weight loss", verdict: "Unsupported", tone: "red", confidence: "Low",
+        note: "Detox teas act as diuretics and laxatives — the drop on the scale is water weight, not fat, and returns once you rehydrate." },
+      { claim: "Detoxes the body", verdict: "Unsupported", tone: "red", confidence: "Low",
+        note: "A healthy liver and kidneys already clear waste — no evidence a tea adds any detox benefit." },
+      { claim: "Beats bloating", verdict: "Limited evidence", tone: "amber", confidence: "Low",
+        note: "Any quick de-bloat is short-term fluid loss from the diuretic effect, not a lasting change." }
     ],
+    formulationFlag: "Many 'skinny' teas contain senna — a stimulant laxative meant only for short-term constipation relief, not daily use. This label doesn't disclose the senna content.",
     avgRating: 2.6,
     reviewCount: 58,
     barPcts: [14, 15, 22, 24, 25],
@@ -862,6 +887,48 @@ const PRODUCTS = {
     review: { name: "Nadia F.", initials: "NF", bg: "#F0997B", fg: "#4A1B0C", rating: 2,
       body: "Didn't lose any weight and it's pricey — felt like I was paying a lot for salt and cream of tartar.",
       tag: "Didn't work", tagTone: "gray", helpful: 22 }
+  },
+  bloom: {
+    brand: "Bloom",
+    name: "Bloom Creatine Gummies",
+    price: "£30.00 · 30 servings",
+    priceValue: 30, servings: 30, currency: "£", artShape: "jar",
+    emoji: "🐻",
+    keywords: ["bloom", "bloomwithella", "bloom creatine", "creatine gummies"],
+    sourceQuery: "creatine monohydrate gummy stability degradation creatinine dose",
+    post: {
+      platform: "TikTok",
+      handle: "@bloomwithella",
+      followers: "1.3M followers",
+      bio: "Bio: \"wellness creator\"",
+      credentialFlag: true,
+      sponsored: true,
+      image: "images/bloom-creatine-gummies-v1.png",
+      caption: "\"Bloom Creatine Gummies help me stay consistent, power through my workouts and feel my best every day\""
+    },
+    score: 37,
+    scoreLabel: "Weak",
+    scoreTone: "red",
+    // Ordered worst → best so the weakest claim leads.
+    claims: [
+      { claim: "Boost energy", verdict: "Unsupported", tone: "red", confidence: "Low",
+        note: "No literature ties creatine to general energy; its mechanism is short anaerobic power only." },
+      { claim: "Aid muscle recovery", verdict: "Mixed evidence", tone: "amber", confidence: "Moderate",
+        note: "Some markers improve, but meta-analyses on recovery specifically are inconsistent." },
+      { claim: "Support cognitive health", verdict: "Limited evidence", tone: "amber", confidence: "Low",
+        note: "Modest effects mostly shown in sleep-deprived or older adults, not general use." },
+      { claim: "Boost strength", verdict: "Strong evidence", tone: "teal", confidence: "High",
+        note: "One of the most replicated findings in sports nutrition." },
+      { claim: "Build lean muscle", verdict: "Strong evidence", tone: "teal", confidence: "High",
+        note: "Consistent gains with resistance training, backed by multiple meta-analyses." }
+    ],
+    formulationFlag: "Creatine degrades to inactive creatinine in aqueous, acidic conditions over time — exactly the environment inside a gummy over its shelf life. No dose or stability testing disclosed.",
+    avgRating: 3.8,
+    reviewCount: 121,
+    barPcts: [40, 26, 16, 10, 8],
+    review: { name: "Hannah B.", initials: "HB", bg: "#C0DD97", fg: "#173404", rating: 3,
+      body: "They taste great and I take them daily — but there's no dose on the label, so I've no idea if I'm getting an effective amount.",
+      tag: "No dose listed", tagTone: "gray", helpful: 29 }
   }
 };
 
@@ -881,10 +948,11 @@ const TRENDING_WEEK = [
 const RECENT_KEY = "receipts_recent_v1";
 
 const SAMPLE_LINKS = [
-  { id: "collagen", label: "TikTok · @glowwithella", url: "https://www.tiktok.com/@glowwithella/video/7291837465210" },
+  { id: "bloom", label: "TikTok · @bloomwithella", url: "https://www.tiktok.com/@bloom/video/7544092143711751437" },
   { id: "creatine", label: "Instagram · @fitfuel_jess", url: "https://www.instagram.com/fitfuel_jess/" },
-  { id: "magnesium", label: "Instagram · @sleepy.sabine", url: "https://www.instagram.com/sleepy.sabine/" },
-  { id: "greens", label: "TikTok · @rise.with.remi", url: "https://www.tiktok.com/@rise.with.remi/video/7301122334455" }
+  { id: "collagen", label: "TikTok · @hahasabine", url: "https://www.tiktok.com/@hahasabine/video/7291837465210" },
+  { id: "skinnytea", label: "TikTok · @rise.with.remi", url: "https://www.tiktok.com/@rise.with.remi/video/7301122334455" },
+  { id: "zoe", label: "Instagram · @zoe", url: "https://www.instagram.com/zoe/" }
 ];
 
 let currentId = "collagen";
@@ -941,14 +1009,12 @@ function valueTier(p, perDose){
 
 function valueAnalysisHtml(p){
   const perDose = p.priceValue / p.servings;
-  const t = valueTier(p, perDose);
   return '<span class="section-label" style="margin:0;">💰 Value analysis</span>' +
     '<div class="value-stats">' +
       '<div class="value-stat"><span class="value-stat-label">Price</span><span class="value-stat-num">' + p.currency + p.priceValue.toFixed(2) + '</span></div>' +
       '<div class="value-stat"><span class="value-stat-label">Servings</span><span class="value-stat-num">' + p.servings + '</span></div>' +
-      '<div class="value-stat"><span class="value-stat-label">Per dose</span><span class="value-stat-num value-stat-accent">' + p.currency + perDose.toFixed(2) + '</span></div>' +
-    '</div>' +
-    '<div class="value-verdict-row"><span>Evidence-adjusted rating</span>' + pill(t.tier, t.tone) + '</div>';
+      '<div class="value-stat"><span class="value-stat-label">Per dose</span><span class="value-stat-num">' + p.currency + perDose.toFixed(2) + '</span></div>' +
+    '</div>';
 }
 
 // Highlights the ONE claim most tied to what the post actually said (the
@@ -1510,7 +1576,9 @@ function renderCheck(id){
       (p.post.credentialFlag ? pill('No medical or nutrition credential listed', 'amber') : '') +
       (p.post.sponsored ? pill('Sponsored', 'gray') : '') +
     '</div>' +
-    '<div class="thumb-box"><span class="thumb-play">▶</span><span class="thumb-cap">' + p.post.platform + ' · watch clip</span></div>' +
+    (p.post.image
+      ? '<div class="post-photo"><img src="' + p.post.image + '" alt="' + p.post.handle + ' post" onerror="this.remove()" /></div>'
+      : '<div class="thumb-box"><span class="thumb-play">▶</span><span class="thumb-cap">' + p.post.platform + ' · watch clip</span></div>') +
     '<div class="tagged-product">' +
       '<div class="tagged-thumb">' + productArtSvg(p) + photoOverlay(id, p.name) + '</div>' +
       '<div style="min-width:0;">' +
@@ -1535,6 +1603,11 @@ function renderCheck(id){
     sourceRowHtml(p, 'studyCount-check');
 
   loadStudyCount(p, 'studyCount-check');
+
+  document.getElementById('formulationFlag').innerHTML = p.formulationFlag
+    ? '<div class="flag-banner"><span class="flag-banner-title">Formulation flag</span>' +
+        '<span class="flag-banner-text">' + p.formulationFlag + '</span></div>'
+    : '';
 
   document.getElementById('valueCard').innerHTML = valueAnalysisHtml(p);
 
@@ -1772,12 +1845,9 @@ function checkPastedLink(){
     openCheck(matched);
     return;
   }
-  const plat = detectPlatform(raw.toLowerCase());
-  showToast(plat
-    ? "That " + plat + " link isn't in our evidence library yet — try an example below"
-    : "Not in our evidence library yet — try an example below");
-  const examples = document.getElementById('exampleList');
-  if (examples && examples.scrollIntoView) examples.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // Demo behaviour: any unrecognised link lands on the Bloom check so a pasted
+  // link always returns a real results page.
+  openCheck('bloom');
 }
 
 function openProductFromCheck(){
