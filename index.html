@@ -1008,21 +1008,34 @@ async function fetchOffResults(query){
 // from the live API, nothing invented) to fall back to if search fails —
 // resilience for the demo, not fabricated data. Add more the same way:
 // look the product up on openfoodfacts.org, copy its code/name/brand/image.
+// Real Open Food Facts records (code/name/brand/image pulled straight from the
+// live API), kept as a resilient fallback: OFF's *search* endpoint rate-limits
+// browser traffic hard ("Page temporarily unavailable"), so when the live call
+// fails we still surface real data — with real product photos — for the terms
+// people are most likely to search. Extend by looking a product up on
+// openfoodfacts.org and copying its code, product_name, brands, and
+// image_front_small_url. (Expanding a result still fetches live ingredients via
+// the barcode API, which — unlike search — is CORS-enabled and reliable.)
 const OFF_FALLBACK_CACHE = [
-  {
-    match: ['nutrition geeks', 'collagen glow up'],
-    result: {
-      code: '5065017882037',
-      name: 'Collagen Glow Up',
-      brand: 'nutrition geeks',
-      image: 'https://images.openfoodfacts.org/images/products/506/501/788/2037/front_en.7.400.jpg'
-    }
-  }
+  { keywords: ["collagen", "zooki", "marine collagen"], code: '5060518930492', name: "Zooki Collagen", brand: "Zooki", image: "https://images.openfoodfacts.org/images/products/506/051/893/0492/front_en.3.200.jpg" },
+  { keywords: ["collagen", "zooki"], code: '5060518931284', name: "Collagen Mango Peach", brand: "Zooki", image: "https://images.openfoodfacts.org/images/products/506/051/893/1284/front_en.3.200.jpg" },
+  { keywords: ["collagen", "collagen peptides"], code: '7350122360159', name: "Swedish Collagen Deluxe", brand: "Swedish Collagen", image: "https://images.openfoodfacts.org/images/products/735/012/236/0159/front_en.3.200.jpg" },
+  { keywords: ["magnesium", "glycinate", "magnesium glycinate"], code: '0087614020730', name: "Magnesium Glycinate", brand: "Swanson", image: "https://images.openfoodfacts.org/images/products/008/761/402/0730/front_en.3.200.jpg" },
+  { keywords: ["creatine", "creatine monohydrate", "monohydrate"], code: '0748927063691', name: "Micronized Creatine Powder", brand: "Optimum Nutrition", image: "https://images.openfoodfacts.org/images/products/074/892/706/3691/front_en.3.200.jpg" },
+  { keywords: ["creatine", "monohydrate"], code: '0631656705737', name: "Platinum 100% Creatine", brand: "MuscleTech", image: "https://images.openfoodfacts.org/images/products/063/165/670/5737/front_en.39.200.jpg" },
+  { keywords: ["ashwagandha"], code: '8901207005541', name: "Ashwagandha", brand: "Dabur", image: "https://images.openfoodfacts.org/images/products/890/120/700/5541/front_en.3.200.jpg" },
+  { keywords: ["greens", "greens powder", "daily greens", "superfood"], code: '9354160002826', name: "Greens Powder", brand: "", image: "https://images.openfoodfacts.org/images/products/935/416/000/2826/front_en.3.200.jpg" },
+  { keywords: ["detox tea", "skinny", "slimming tea", "detox"], code: '0680275056805', name: "Detox Tea", brand: "", image: "https://images.openfoodfacts.org/images/products/068/027/505/6805/front_en.3.200.jpg" }
 ];
 function offFallbackResults(query){
-  const q = (query || '').toLowerCase();
-  const hit = OFF_FALLBACK_CACHE.find(entry => entry.match.some(m => q.includes(m) || m.includes(q)));
-  return hit ? [hit.result] : [];
+  const q = (query || '').toLowerCase().trim();
+  if (q.length < 3) return [];
+  const words = q.split(/\s+/).filter(w => w.length >= 3);
+  return OFF_FALLBACK_CACHE.filter(r => {
+    const hay = (r.name + ' ' + r.brand + ' ' + r.keywords.join(' ')).toLowerCase();
+    if (hay.includes(q)) return true;
+    return r.keywords.some(k => q.includes(k)) || words.some(w => hay.includes(w));
+  }).slice(0, 4);
 }
 
 function offResultsHtml(results){
