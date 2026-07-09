@@ -35,6 +35,7 @@
     --gray-bg:#F0EBE1;
     --gray-text:#6E645B;
     --star:#DFA43A;
+    --coral:#B96A4A;
     --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
     --font-body:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   }
@@ -94,9 +95,10 @@
   .nav{display:flex;justify-content:space-between;align-items:center;}
   .nav button.icon-btn{background:none;border:none;font-size:20px;cursor:pointer;color:var(--text);padding:4px;line-height:1;}
   .nav .title{font-family:var(--font-display);font-size:16.5px;font-weight:600;letter-spacing:-0.01em;}
-  .brand-row{display:flex;align-items:flex-end;gap:6px;}
-  .brand-dot{width:9px;height:9px;border-radius:50%;background:var(--brand);margin-bottom:9px;flex-shrink:0;}
-  .wordmark{font-family:var(--font-display);font-size:32px;font-weight:600;letter-spacing:-0.015em;color:var(--brand-dark);line-height:1;}
+  .brand-row{display:flex;align-items:center;gap:9px;}
+  .brand-logo{width:40px;height:40px;flex-shrink:0;display:flex;}
+  .brand-logo svg{display:block;}
+  .wordmark{font-family:var(--font-display);font-size:31px;font-weight:600;letter-spacing:-0.015em;color:var(--text);line-height:1;}
   .tagline{font-family:var(--font-body);font-size:14px;font-weight:400;color:#4A423B;margin-top:7px;letter-spacing:-0.01em;}
   .search-row{display:flex;gap:8px;}
   .search-row input{
@@ -144,6 +146,8 @@
   .btn-secondary:hover{border-color:var(--text-muted);}
   .btn-secondary:active{transform:scale(0.985);}
   .section-label{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text);margin-top:4px;letter-spacing:-0.01em;}
+  /* Large section headline, matching the Trending title, for top-level home rails. */
+  .section-lg{font-size:26px;letter-spacing:-0.015em;line-height:1.1;}
   .example-card{
     background:var(--surface);border:1px solid var(--border);border-radius:18px;
     padding:13px;display:flex;gap:11px;align-items:center;cursor:pointer;text-align:left;
@@ -159,6 +163,35 @@
   .example-meta{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1;}
   .example-handle{font-size:12.5px;font-weight:600;}
   .example-caption{font-size:11.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .trend-header{display:flex;flex-direction:column;gap:3px;margin-top:6px;}
+  .trend-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--coral);}
+  .trend-title{font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.015em;margin:0;line-height:1.05;color:var(--text);}
+  .trend-sub{font-size:13px;color:var(--text-secondary);line-height:1.4;}
+  .trend-card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:18px;
+    display:flex;flex-direction:column;gap:13px;box-shadow:0 2px 10px rgba(40,30,80,0.05);cursor:pointer;text-align:left;
+    width:100%;font-family:var(--font-body);transition:border-color .15s ease, transform .1s ease;}
+  .trend-card:active{transform:scale(0.995);}
+  .trend-card:hover{border-color:var(--border-strong);}
+  .trend-head{display:flex;align-items:center;gap:11px;}
+  .trend-avatar{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;background:#F4C6D6;color:#8A3B57;}
+  .trend-meta{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1;}
+  .trend-handle{display:flex;align-items:center;gap:5px;font-size:14.5px;font-weight:600;color:var(--text);}
+  .trend-verified{flex-shrink:0;display:block;}
+  .trend-followers{font-size:12px;color:var(--text-muted);}
+  .trend-sponsored{flex-shrink:0;font-size:10px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;
+    color:var(--amber-text);background:var(--amber-bg);padding:5px 10px;border-radius:8px;}
+  .trend-claim{font-family:var(--font-display);font-style:italic;font-size:15.5px;line-height:1.42;color:var(--text);
+    border-left:2px solid var(--border-strong);padding-left:13px;}
+  .trend-product{display:flex;align-items:center;gap:12px;}
+  .trend-prod-icon{width:48px;height:48px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:21px;}
+  .trend-prod-meta{display:flex;flex-direction:column;gap:4px;min-width:0;}
+  .trend-prod-name{font-size:15.5px;font-weight:700;line-height:1.15;color:var(--text);}
+  .trend-evidence{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;}
+  .trend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .te-amber{color:#C4761C;} .te-amber .trend-dot{background:#EA8C2A;}
+  .te-teal{color:var(--teal-text);} .te-teal .trend-dot{background:#1D9E75;}
+  .te-red{color:var(--red-text);} .te-red .trend-dot{background:#E24B4A;}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:11px;box-shadow:0 1px 2px rgba(40,30,80,0.03);}
   .row-between{display:flex;justify-content:space-between;align-items:center;gap:8px;}
   .pill{font-size:10.5px;font-weight:600;padding:4px 9px;border-radius:999px;white-space:nowrap;flex-shrink:0;}
@@ -236,7 +269,11 @@
   .list-thumb{width:36px;height:36px;border-radius:9px;background:var(--surface-alt);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;position:relative;overflow:hidden;}
   .list-thumb img{width:100%;height:100%;object-fit:cover;border-radius:9px;}
   .list-thumb .thumb-fallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;background:var(--surface-alt);}
-  .off-detail-photo{width:100%;max-height:160px;object-fit:cover;border-radius:12px;margin-bottom:2px;}
+  .off-detail-head{display:flex;align-items:center;gap:12px;}
+  .off-detail-thumb{width:54px;height:54px;border-radius:12px;object-fit:cover;flex-shrink:0;border:1px solid var(--border);background:var(--surface-alt);}
+  .off-detail-titles{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .off-detail-block{display:flex;flex-direction:column;gap:3px;}
+  .off-detail-label{font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);}
 
   .value-stats{display:flex;gap:10px;}
   .value-stat{flex:1;display:flex;flex-direction:column;gap:3px;}
@@ -301,7 +338,7 @@
     <div class="statusbar"><b>9:41</b><span class="sb-icons"><svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor" aria-hidden="true"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="6" width="3" height="6" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor" aria-hidden="true"><path d="M8 2.2c2.5 0 4.8 1 6.5 2.6l-1.5 1.6C11.7 5.1 9.9 4.3 8 4.3S4.3 5.1 3 6.4L1.5 4.8C3.2 3.2 5.5 2.2 8 2.2z"/><path d="M8 6.1c1.4 0 2.7.6 3.7 1.5l-1.6 1.7c-.5-.6-1.3-.9-2.1-.9s-1.6.3-2.1.9L4.3 7.6C5.3 6.7 6.6 6.1 8 6.1z"/><circle cx="8" cy="10.2" r="1.3"/></svg><svg width="26" height="13" viewBox="0 0 26 13" fill="none" aria-hidden="true"><rect x="0.6" y="0.6" width="21.8" height="11.8" rx="3.4" stroke="currentColor" stroke-opacity="0.4"/><rect x="2" y="2" width="17" height="9" rx="2" fill="currentColor"/><rect x="23.6" y="4.2" width="1.6" height="4.6" rx="0.8" fill="currentColor" fill-opacity="0.5"/></svg></span></div>
     <div>
       <div class="brand-row">
-        <span class="brand-dot" aria-hidden="true"></span>
+        <span class="brand-logo" aria-hidden="true"><svg viewBox="0 0 44 44" width="40" height="40"><circle cx="22" cy="22" r="22" fill="#F3E8E2"/><path d="M13.5 15 L22 30.5 L30.5 15" fill="none" stroke="#B96A4A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M31.5 11.3c.6 2.1 1.5 3 3.6 3.6-2.1.6-3 1.5-3.6 3.6-.6-2.1-1.5-3-3.6-3.6 2.1-.6 3-1.5 3.6-3.6z" fill="#B96A4A"/></svg></span>
         <span class="wordmark">Vera</span>
       </div>
       <div class="tagline">The truth behind the hype.</div>
@@ -351,14 +388,17 @@
       <div id="offResults"></div>
     </div>
 
-    <div class="section-label">Recently checked</div>
+    <div class="section-label section-lg">Recently checked</div>
     <div class="hscroll" id="recentList"></div>
 
-    <div class="section-label">Top scored by the community</div>
+    <div class="section-label section-lg">Top scored by the community</div>
     <div class="hscroll" id="topScoredList"></div>
 
-    <div class="section-label">Trending this week</div>
-    <div id="exampleList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div class="trend-header">
+      <h2 class="trend-title">Trending</h2>
+      <span class="trend-sub">Popular supplement claims people are seeing this week</span>
+    </div>
+    <div id="exampleList" style="display:flex;flex-direction:column;gap:16px;"></div>
   </section>
 
   <!-- CHECK A POST -->
@@ -723,6 +763,105 @@ const PRODUCTS = {
     review: { name: "Jess M.", initials: "JM", bg: "#9FE1CB", fg: "#04342C", rating: 4,
       body: "Tasty and easy to remember — but I checked the label, only 1.5g each, so I take three to hit my usual 5g.",
       tag: "Check the dose", tagTone: "amber", helpful: 33 }
+  },
+  seamoss: {
+    brand: "Auria",
+    name: "Sea Moss Glow Gummies",
+    price: "£29.00 · 30 servings",
+    priceValue: 29, servings: 30, currency: "£", artShape: "jar",
+    emoji: "🌿",
+    keywords: ["sea moss", "seamoss", "glow gummies", "auria", "irish moss"],
+    sourceQuery: "sea moss irish moss skin acne hair growth clinical trial",
+    post: {
+      platform: "TikTok",
+      handle: "@glowwithmaya",
+      followers: "482K followers",
+      bio: "Bio: \"skin & hormone coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"Cleared my hormonal acne in 2 weeks + gave me insane hair growth\""
+    },
+    score: 42,
+    scoreLabel: "Limited evidence",
+    scoreTone: "amber",
+    claims: [
+      { claim: "Clears hormonal acne", verdict: "Limited evidence", tone: "amber", confidence: "Low",
+        note: "Sea moss provides iodine and trace minerals, but no controlled trials show it clears hormonal acne — the skin claims are anecdotal" },
+      { claim: "Triggers rapid hair growth", verdict: "Weak evidence", tone: "red", confidence: "Low",
+        note: "No published human trials link sea moss supplements to measurable hair growth" }
+    ],
+    avgRating: 3.4,
+    reviewCount: 63,
+    barPcts: [30, 26, 22, 12, 10],
+    review: { name: "Amara D.", initials: "AD", bg: "#9FE1CB", fg: "#04342C", rating: 3,
+      body: "Tastes nice but my skin looked the same after a month, and I didn't notice the hair thing either.",
+      tag: "No visible change", tagTone: "gray", helpful: 19 }
+  },
+  marinelatte: {
+    brand: "Sunna",
+    name: "Marine Collagen Beauty Latte",
+    price: "£38.00 · 30 servings",
+    priceValue: 38, servings: 30, currency: "£", artShape: "pouch",
+    emoji: "🌸",
+    keywords: ["marine collagen", "beauty latte", "sunna", "collagen latte"],
+    sourceQuery: "marine collagen peptides skin elasticity wrinkles randomized controlled trial",
+    post: {
+      platform: "TikTok",
+      handle: "@softlifeserena",
+      followers: "1.2M followers",
+      bio: "Bio: \"beauty & longevity\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"10 years younger skin in 30 days. My fine lines are GONE.\""
+    },
+    score: 66,
+    scoreLabel: "Moderate evidence",
+    scoreTone: "teal",
+    claims: [
+      { claim: "Reduces fine lines and wrinkles", verdict: "Moderate evidence", tone: "teal", confidence: "Moderate",
+        note: "Meta-analyses show marine collagen can modestly improve skin elasticity and hydration over 8–12 weeks — real, but far smaller and slower than a '10 years younger' claim" },
+      { claim: "Visible transformation in 30 days", verdict: "Limited evidence", tone: "amber", confidence: "Low",
+        note: "Most collagen-and-skin studies run 8–12 weeks; a dramatic 30-day change isn't supported by the trials" }
+    ],
+    avgRating: 4.1,
+    reviewCount: 154,
+    barPcts: [48, 30, 14, 5, 3],
+    review: { name: "Priya S.", initials: "PS", bg: "#F5C4B3", fg: "#4A1B0C", rating: 4,
+      body: "Skin does look a bit more plump after ~2 months. The '10 years younger' bit is a stretch though.",
+      tag: "Helped, slowly", tagTone: "teal", helpful: 37 }
+  },
+  cortisol: {
+    brand: "RootedCalm",
+    name: "Cortisol Calm Adrenal Cocktail",
+    price: "£34.00 · 30 servings",
+    priceValue: 34, servings: 30, currency: "£", artShape: "bottle",
+    emoji: "🌙",
+    keywords: ["cortisol", "adrenal cocktail", "cortisol belly", "rootedcalm", "adrenal"],
+    sourceQuery: "adrenal cocktail cortisol belly fat weight loss evidence",
+    post: {
+      platform: "TikTok",
+      handle: "@hormonebalancekay",
+      followers: "3.7M followers",
+      bio: "Bio: \"hormone & wellness coach\"",
+      credentialFlag: true,
+      sponsored: true,
+      caption: "\"Lost 15 lbs of cortisol belly in 3 weeks without changing my diet\""
+    },
+    score: 21,
+    scoreLabel: "Not supported",
+    scoreTone: "red",
+    claims: [
+      { claim: "Melts 'cortisol belly' with no diet change", verdict: "Not supported", tone: "red", confidence: "Low",
+        note: "'Cortisol belly' isn't a recognised medical diagnosis, and no evidence shows an 'adrenal cocktail' causes 15lbs of fat loss in 3 weeks without a calorie change" },
+      { claim: "Balances your hormones", verdict: "Weak evidence", tone: "red", confidence: "Low",
+        note: "Healthy adrenal glands don't need 'support' from a supplement — there's no trial evidence this changes cortisol or body weight" }
+    ],
+    avgRating: 2.4,
+    reviewCount: 41,
+    barPcts: [12, 14, 20, 24, 30],
+    review: { name: "Nadia F.", initials: "NF", bg: "#F0997B", fg: "#4A1B0C", rating: 2,
+      body: "Didn't lose any weight and it's pricey — felt like I was paying a lot for salt and cream of tartar.",
+      tag: "Didn't work", tagTone: "gray", helpful: 22 }
   }
 };
 
@@ -730,10 +869,14 @@ const PRODUCTS = {
 // surfaces: a weakly-evidenced detox tea, a mixed-evidence collagen, and a
 // well-backed creatine. `tone` drives the score-pill colour (red = weak,
 // amber = mixed, teal = backed). `id` maps to the curated product opened on tap.
+// "Trending this week" cards. Each references a real product (so tapping opens
+// its evidence page) and adds the card-only styling: creator initials and the
+// soft gradient behind the product icon. Handle, followers, claim, product name
+// and evidence tier all come from the product record below.
 const TRENDING_WEEK = [
-  { id: "skinnytea", name: "Skinny & Glow Tea",    claim: "Melts bloat and fat in just 14 days",  score: 26, scoreLabel: "Weak evidence",  tone: "red",   emoji: "🍵" },
-  { id: "collagen",  name: "Collagen Peptides",    claim: "Visibly changed my skin in 2 weeks",    score: 58, scoreLabel: "Mixed evidence", tone: "amber", emoji: "✨" },
-  { id: "creatinegummies", name: "Creatine Gummy Bears", claim: "Same gains as powder, just tastier", score: 72, scoreLabel: "Backed", tone: "teal", emoji: "🐻" }
+  { id: "seamoss",     initials: "MR", productBg: "linear-gradient(135deg,#D6F0E6,#E9DAF5)" },
+  { id: "marinelatte", initials: "SC", productBg: "linear-gradient(135deg,#FBE7D6,#F6D9E6)" },
+  { id: "cortisol",    initials: "KM", productBg: "linear-gradient(135deg,#EFE7FB,#F8E1EC)" }
 ];
 const RECENT_KEY = "receipts_recent_v1";
 
@@ -1096,10 +1239,18 @@ async function expandOffResult(code, btnEl){
     const photoUrl = prod.image_front_url || prod.image_url || '';
     panel.className = 'off-detail card';
     panel.innerHTML =
-      (photoUrl ? '<img src="' + photoUrl + '" alt="" class="off-detail-photo" onerror="this.remove()" />' : '') +
-      '<span class="claim-title">Ingredients (Open Food Facts)</span>' +
-      '<span class="claim-note">' + (ingredientsText ? ingredientsText.slice(0, 240) : 'No ingredient list on file for this product') + '</span>' +
-      '<span class="helpful">Evidence scoring isn\'t available for this product yet — it\'s not in our curated library.</span>';
+      '<div class="off-detail-head">' +
+        (photoUrl ? '<img src="' + photoUrl + '" alt="" class="off-detail-thumb" onerror="this.remove()" />' : '') +
+        '<div class="off-detail-titles">' +
+          '<span class="claim-title">' + (prod.product_name || 'Product') + '</span>' +
+          (prod.brands ? '<span class="list-sub">' + prod.brands + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<div class="off-detail-block">' +
+        '<span class="off-detail-label">Ingredients · Open Food Facts</span>' +
+        '<span class="claim-note">' + (ingredientsText ? ingredientsText.slice(0, 240) : 'No ingredient list on file for this product.') + '</span>' +
+      '</div>' +
+      '<span class="helpful">Not in Vera\'s curated library yet, so we can\'t score it against evidence — this is real label data from Open Food Facts.</span>';
   } catch (e) {
     panel.className = 'off-detail empty-state';
     panel.textContent = "Couldn't load real product data right now.";
@@ -1117,18 +1268,37 @@ function pushRecent(id, mode){
   try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); } catch (e) {}
 }
 
+function verifiedBadge(){
+  return '<svg class="trend-verified" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+    '<path fill="#3B9AE1" d="M12 1.8l2.5 1.9 3.1.1 1 3 2.5 1.8-1 3 1 3-2.5 1.8-1 3-3.1.1L12 22.2l-2.5-1.9-3.1-.1-1-3L2.9 15.4l1-3-1-3 2.5-1.8 1-3 3.1-.1z"/>' +
+    '<path fill="#fff" d="M10.7 14.8l-2.4-2.4 1.2-1.2 1.2 1.2 3.1-3.1 1.2 1.2z"/></svg>';
+}
+
 function renderExamples(){
   const list = document.getElementById('exampleList');
-  list.innerHTML = TRENDING_WEEK.map(t =>
-    '<button class="example-card" onclick="openCheck(\'' + t.id + '\')" style="width:100%;">' +
-      '<div class="example-thumb">' + t.emoji + photoOverlay(t.id, t.name) + '</div>' +
-      '<div class="example-meta">' +
-        '<span class="example-handle">' + t.name + '</span>' +
-        '<span class="example-caption">' + t.claim + '</span>' +
+  list.innerHTML = TRENDING_WEEK.map(t => {
+    const p = PRODUCTS[t.id];
+    if (!p) return '';
+    const claim = p.post.caption.replace(/^"|"$/g, '');
+    return '<button class="trend-card" onclick="openCheck(\'' + t.id + '\')">' +
+      '<div class="trend-head">' +
+        '<span class="trend-avatar">' + t.initials + '</span>' +
+        '<div class="trend-meta">' +
+          '<span class="trend-handle">' + p.post.handle + verifiedBadge() + '</span>' +
+          '<span class="trend-followers">' + p.post.followers + '</span>' +
+        '</div>' +
+        (p.post.sponsored ? '<span class="trend-sponsored">Sponsored</span>' : '') +
       '</div>' +
-      pill(t.score + ' · ' + t.scoreLabel, t.tone) +
-    '</button>'
-  ).join('');
+      '<div class="trend-claim">"' + claim + '"</div>' +
+      '<div class="trend-product">' +
+        '<span class="trend-prod-icon" style="background:' + t.productBg + ';">' + p.emoji + '</span>' +
+        '<div class="trend-prod-meta">' +
+          '<span class="trend-prod-name">' + p.name + '</span>' +
+          '<span class="trend-evidence te-' + p.scoreTone + '"><span class="trend-dot"></span>' + p.scoreLabel + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</button>';
+  }).join('');
 }
 
 function renderRecent(){
@@ -1268,13 +1438,6 @@ function renderScreenshotChips(){
   }).join('');
 }
 
-function suggestionChipsHtml(){
-  return '<div class="chip-row" style="padding:10px 2px 6px;">' + Object.keys(PRODUCTS).map(id => {
-    const p = PRODUCTS[id];
-    return '<button class="chip" onclick="openProductDirect(\'' + id + '\')">' + p.emoji + ' ' + p.name + ' →</button>';
-  }).join('') + '</div>';
-}
-
 function filterBrands(){
   const raw = document.getElementById('brandInput').value.trim();
   const q = raw.toLowerCase();
@@ -1283,7 +1446,7 @@ function filterBrands(){
   renderOffSection(raw);
 
   if (!q){
-    el.innerHTML = '<div class="empty-state">Start typing a brand or product name…</div>' + suggestionChipsHtml();
+    el.innerHTML = '<div class="empty-state">Start typing a brand or product name to search Vera, plus the NIH and Open Food Facts databases.</div>';
     return;
   }
 
@@ -1296,7 +1459,7 @@ function filterBrands(){
   });
 
   if (!ids.length){
-    el.innerHTML = '<div class="empty-state">No matches for "' + raw + '" — try one of these instead:</div>' + suggestionChipsHtml();
+    el.innerHTML = '<div class="empty-state">Not in Vera\'s curated library — check the real databases below.</div>';
     return;
   }
 

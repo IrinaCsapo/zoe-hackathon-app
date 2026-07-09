@@ -38,6 +38,9 @@ const PRODUCTS = [
   { id: 'ashwagandha',     subject: 'a dark apothecary glass bottle of ashwagandha capsules, calm earthy branding' },
   { id: 'skinnytea',       subject: 'a pretty pastel pouch of loose-leaf herbal detox tea, delicate wellness branding' },
   { id: 'creatinegummies', subject: 'a clear jar of colourful creatine gummy bears with a pastel label' },
+  { id: 'seamoss',         subject: 'a frosted glass jar of sea moss beauty gummies, soft pastel-green branding' },
+  { id: 'marinelatte',     subject: 'a pastel pouch of marine collagen beauty latte powder, blush-pink premium branding' },
+  { id: 'cortisol',        subject: 'a dark glass dropper bottle of adrenal-support supplement, calm lilac branding' },
 ];
 
 async function generate(p) {
