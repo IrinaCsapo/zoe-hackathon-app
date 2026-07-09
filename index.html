@@ -1396,7 +1396,11 @@ function renderRecent(){
 
 function renderTopScored(){
   const el = document.getElementById('topScoredList');
-  const ids = Object.keys(PRODUCTS).sort((a, b) => PRODUCTS[b].score - PRODUCTS[a].score);
+  // Only the well-evidenced (teal) products belong in a "top scored" rail —
+  // hide anything scored amber (mixed) or red (weak/unsupported).
+  const ids = Object.keys(PRODUCTS)
+    .filter(id => PRODUCTS[id].scoreTone === 'teal')
+    .sort((a, b) => PRODUCTS[b].score - PRODUCTS[a].score);
   el.innerHTML = ids.map(id => {
     const p = PRODUCTS[id];
     return '<button class="hscroll-card" onclick="openProductDirect(\'' + id + '\')">' +
