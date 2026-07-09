@@ -23,10 +23,10 @@ const OUT_DIR = path.join(process.cwd(), 'images');
 
 // One shared look so every product feels like the same premium brand shelf.
 const STYLE =
-  'premium supplement product photography, one product centred in frame, ' +
-  'clean matte label, soft diffused studio lighting, gentle shadow, ' +
-  'pastel lilac and warm cream background, minimalist high-end wellness brand, ' +
-  'editorial, sharp focus, 4k, no text on label, no hands, no people';
+  'premium wellness supplement product photography, luxury beauty-and-wellness brand, ' +
+  'one product centred in frame, clean matte label, apothecary aesthetic, ' +
+  'soft diffused studio lighting, gentle shadow, pastel lilac and warm cream background, ' +
+  'minimalist high-end, editorial, sharp focus, 4k, no text on label, no hands, no people';
 
 // id must match the product keys in index.html so the app can find images/<id>.jpg
 const PRODUCTS = [
