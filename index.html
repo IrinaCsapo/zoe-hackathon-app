@@ -362,7 +362,7 @@
 
     <div class="tab-panel active" id="tab-link">
       <div class="search-row">
-        <input type="text" id="pasteInput" placeholder="Paste a TikTok or Instagram link…"
+        <input type="text" id="pasteInput" placeholder="Paste a TikTok video link…"
           onkeydown="if(event.key==='Enter'){checkPastedLink();}" />
       </div>
       <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
@@ -1573,22 +1573,32 @@ function renderHigherScored(currentId){
   }).join('');
 }
 
-function renderCheck(id){
+function renderCheck(id, live){
   const p = PRODUCTS[id];
+  // When `live` is present the post header shows the real data pulled from
+  // TikTok's oEmbed (handle, caption, cover image); the scoring below still
+  // comes from the matched curated product.
+  const hdrHandle  = live ? live.handle : p.post.handle;
+  const hdrMeta    = live ? (live.authorName || 'TikTok') : p.post.followers;
+  const hdrBio     = live ? ('Pulled live from ' + live.platform) : p.post.bio;
+  const hdrCaption = live ? ('"' + (live.caption || '').replace(/^"|"$/g, '') + '"') : p.post.caption;
+  const hdrImage   = live ? live.thumbnail : p.post.image;
+  const hdrFlags   = live
+    ? pill('Fetched from TikTok', 'gray')
+    : (p.post.credentialFlag ? pill('No medical or nutrition credential listed', 'amber') : '') +
+      (p.post.sponsored ? pill('Sponsored', 'gray') : '');
+
   document.getElementById('postCard').innerHTML =
     '<div class="row-between" style="align-items:flex-start;">' +
       '<div style="display:flex;flex-direction:column;">' +
-        '<span class="review-name">' + p.post.handle + ' · ' + p.post.followers + '</span>' +
-        '<span class="helpful">' + p.post.bio + '</span>' +
+        '<span class="review-name">' + hdrHandle + ' · ' + hdrMeta + '</span>' +
+        '<span class="helpful">' + hdrBio + '</span>' +
       '</div>' +
       '<div class="score-bubble sb-' + p.scoreTone + '">' + p.score + '</div>' +
     '</div>' +
-    '<div class="tag-row">' +
-      (p.post.credentialFlag ? pill('No medical or nutrition credential listed', 'amber') : '') +
-      (p.post.sponsored ? pill('Sponsored', 'gray') : '') +
-    '</div>' +
-    (p.post.image
-      ? '<div class="post-photo"><img src="' + p.post.image + '" alt="' + p.post.handle + ' post" onerror="this.remove()" /></div>'
+    '<div class="tag-row">' + hdrFlags + '</div>' +
+    (hdrImage
+      ? '<div class="post-photo"><img src="' + hdrImage + '" alt="post" onerror="this.remove()" /></div>'
       : '<div class="thumb-box"><span class="thumb-play">▶</span><span class="thumb-cap">' + p.post.platform + ' · watch clip</span></div>') +
     '<div class="tagged-product">' +
       '<div class="tagged-thumb">' + productArtSvg(p) + photoOverlay(id, p.name) + '</div>' +
@@ -1598,7 +1608,7 @@ function renderCheck(id){
       '</div>' +
     '</div>' +
     '<span class="section-label" style="margin-top:2px;">Claim summary</span>' +
-    '<div class="quote-box">' + p.post.caption + '</div>' +
+    '<div class="quote-box">' + hdrCaption + '</div>' +
     '<span class="claim-note">' + p.claims[0].note + '</span>';
 
   document.getElementById('claimsBanner').innerHTML = scoreBanner(p);
@@ -1839,26 +1849,99 @@ function renderSampleLinks(){
     const p = PRODUCTS[s.id];
     const platform = p ? p.post.platform : '';
     const handle = p ? p.post.handle : s.label;
-    return '<button class="chip" onclick="fillSampleLink(\'' + s.url + '\')">' +
+    return '<button class="chip" onclick="openCheck(\'' + s.id + '\')">' +
       platformIcon(platform) + '<span>' + handle + '</span>' +
     '</button>';
   }).join('');
 }
 
-function checkPastedLink(){
+// --- Tier 1: pull a real TikTok post in via the public oEmbed endpoint ---
+// oEmbed is CORS-open, so this runs straight from the browser with no backend
+// and no API key. It returns the real handle, caption and cover thumbnail.
+async function fetchOembed(url){
+  try {
+    const res = await fetchWithTimeout('https://www.tiktok.com/oembed?url=' + encodeURIComponent(url), 8000);
+    if (!res.ok) return null;
+    const d = await res.json();
+    if (!d || !d.author_name) return null;
+    return {
+      platform: 'TikTok',
+      handle: d.author_unique_id ? '@' + d.author_unique_id : (d.author_url || ''),
+      authorName: d.author_name || '',
+      caption: (d.title || '').replace(/\s+/g, ' ').trim(),
+      thumbnail: d.thumbnail_url || ''
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function openLiveCheck(live){
+  currentIsUnverified = true;
+  lastUnverifiedQuery = live.authorName || (live.caption || '').slice(0, 60);
+  renderLiveUnverified(live);
+  screenStack.push('screen-check');
+  show('screen-check');
+}
+
+// Real post pulled in, but the product isn't in the curated library yet — show
+// the genuine handle, caption and cover, clearly marked as not-yet-scored.
+function renderLiveUnverified(live){
+  document.getElementById('postCard').innerHTML =
+    '<div class="row-between" style="align-items:flex-start;">' +
+      '<div style="display:flex;flex-direction:column;">' +
+        '<span class="review-name">' + live.handle + (live.authorName ? ' · ' + live.authorName : '') + '</span>' +
+        '<span class="helpful">Pulled live from ' + live.platform + '</span>' +
+      '</div>' +
+      '<div class="score-bubble sb-gray">—</div>' +
+    '</div>' +
+    '<div class="tag-row">' + pill('Fetched from TikTok', 'gray') + pill('Not yet evidence-checked', 'gray') + '</div>' +
+    (live.thumbnail ? '<div class="post-photo"><img src="' + live.thumbnail + '" alt="post" onerror="this.remove()" /></div>' : '') +
+    '<span class="section-label" style="margin-top:2px;">Claim summary</span>' +
+    '<div class="quote-box">"' + (live.caption || '').replace(/^"|"$/g, '') + '"</div>';
+
+  document.getElementById('claimsBanner').innerHTML =
+    '<div class="score-banner score-banner-gray">' +
+      '<div><span class="score-banner-label">Claim score</span><span class="score-banner-value">—</span></div>' +
+      '<span class="score-banner-tag">Not yet evidence-checked</span>' +
+    '</div>';
+
+  document.getElementById('claimsCard').innerHTML =
+    '<div class="claim-row"><span class="claim-title">What the post claims</span>' +
+      '<span class="claim-note">' + (live.caption || 'No caption found.') + '</span></div>' +
+    '<span class="helpful">This product isn\'t in Vera\'s curated library yet, so we can\'t score its claims against evidence — but the handle, caption and cover above are pulled live from the real post.</span>';
+
+  document.getElementById('formulationFlag').innerHTML = '';
+  document.getElementById('valueCard').innerHTML = '';
+  document.getElementById('reviewCard').innerHTML = '<div class="empty-state">No reviews on file for this product yet.</div>';
+  renderHigherScored('__unverified__');
+
+  const cta = document.getElementById('checkCta');
+  if (cta) cta.textContent = 'Search real databases for this →';
+}
+
+async function checkPastedLink(){
   const raw = document.getElementById('pasteInput').value.trim();
   if (!raw){
-    showToast('Paste a link, or try an example below');
+    showToast('Paste a TikTok link to check it');
     return;
   }
-  const matched = matchProduct(raw);
-  if (matched){
-    openCheck(matched);
+
+  if (detectPlatform(raw.toLowerCase()) !== 'TikTok'){
+    showToast('Vera reads TikTok links right now — paste a TikTok post');
     return;
   }
-  // Demo behaviour: any unrecognised link lands on the Bloom check so a pasted
-  // link always returns a real results page.
-  openCheck('bloom');
+
+  // Real data only — pull the actual post in live via oEmbed. No hardcoded
+  // answers: we show the genuine handle, caption and cover, and mark it
+  // not-yet-evidence-checked until the scoring pipeline runs on it.
+  showToast('Fetching the post from TikTok…');
+  const live = await fetchOembed(raw);
+  if (!live){
+    showToast("Couldn't fetch that post — check the link and try again");
+    return;
+  }
+  openLiveCheck(live);
 }
 
 function openProductFromCheck(){
