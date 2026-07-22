@@ -68,6 +68,29 @@ async function productSummary(caption, env) {
     '"summary": one factual sentence on what it is, its form and its marketed purpose}. ' +
     'If a field cannot be verified from real sources, set it to null (or [] for ingredients). Never guess ingredients.';
 
+  function parseProduct(data) {
+    const cand = (data.candidates || [])[0] || {};
+    const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
+    const jm = text.match(/\{[\s\S]*\}/);
+    if (!jm) return null;
+    let obj;
+    try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
+    if (!obj || (!obj.company && !obj.product && !obj.summary && !(Array.isArray(obj.ingredients) && obj.ingredients.length))) return null;
+    const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
+    const sources = chunks
+      .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
+      .filter((s) => s && s.uri)
+      .slice(0, 3);
+    return {
+      company: obj.company || null,
+      product: obj.product || null,
+      ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
+      mainIngredient: obj.mainIngredient || null,
+      summary: obj.summary || null,
+      sources,
+    };
+  }
+
   async function ask(model, grounded) {
     const body = { contents: [{ parts: [{ text: prompt }] }] };
     if (grounded) body.tools = [{ google_search: {} }];
@@ -83,34 +106,17 @@ async function productSummary(caption, env) {
     }
   }
 
-  // Try each model until one has quota; prefer web-grounded, fall back to the
-  // model's own knowledge if grounding isn't available for that model.
-  let data = null;
+  // For each model, try web-grounded first (adds sources) then ungrounded; the
+  // first response that yields VALID product JSON wins. Grounded replies often
+  // wrap prose around the JSON, so the ungrounded pass is the clean fallback.
   for (const model of GEMINI_MODELS) {
-    data = (await ask(model, true)) || (await ask(model, false));
-    if (data) break;
+    for (const grounded of [true, false]) {
+      const data = await ask(model, grounded);
+      const out = data && parseProduct(data);
+      if (out) return out;
+    }
   }
-  if (!data) return null;
-
-  const cand = (data.candidates || [])[0] || {};
-  const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
-  const jm = text.match(/\{[\s\S]*\}/);
-  if (!jm) return null;
-  let obj;
-  try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
-  const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
-  const sources = chunks
-    .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
-    .filter((s) => s && s.uri)
-    .slice(0, 3);
-  return {
-    company: obj.company || null,
-    product: obj.product || null,
-    ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
-    mainIngredient: obj.mainIngredient || null,
-    summary: obj.summary || null,
-    sources,
-  };
+  return null;
 }
 
 export default {
