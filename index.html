@@ -1634,7 +1634,9 @@ function renderCheck(id, live){
         '<span class="flag-banner-text">' + p.formulationFlag + '</span></div>'
     : '';
 
-  document.getElementById('valueCard').innerHTML = valueAnalysisHtml(p);
+  const vcard = document.getElementById('valueCard');
+  vcard.style.display = '';
+  vcard.innerHTML = valueAnalysisHtml(p);
 
   const rc = document.getElementById('reviewCard');
   rc.className = 'card review-card';                  // restore single-card style (live view clears it)
@@ -2191,6 +2193,22 @@ function liveReviewsHtml(tone){
   '<span class="helpful" style="padding:0 2px;">Illustrative reviews — sample sentiment for this kind of product, not verified purchases.</span>';
 }
 
+// GRADE-style Strength + Confidence summary for the live estimate — the
+// "Evidence summary" card, rebuilt from the top estimated claim.
+function evidenceSummaryLive(est){
+  const c = est.claims[0];
+  const strength = c.tier.replace(/ evidence$/i, '');
+  const confMap = { 'Strong': 'High', 'Moderate': 'Moderate', 'Mixed': 'Moderate', 'Limited': 'Low', 'Weak': 'Low', 'Unsupported': 'Low' };
+  const confidence = confMap[strength] || 'Low';
+  return '<span class="section-label" style="margin:0;">🔎 Evidence summary</span>' +
+    '<span class="claim-note">' + c.note + '</span>' +
+    '<div class="evidence-stats">' +
+      '<div class="evidence-stat"><span class="value-stat-label">Strength</span><span class="value-stat-num">' + strength + '</span></div>' +
+      '<div class="evidence-stat"><span class="value-stat-label">Confidence</span><span class="value-stat-num">' + confidence + '</span></div>' +
+    '</div>' +
+    '<span class="helpful">ⓘ Individual responses can vary — this reflects the general evidence, not a guarantee.</span>';
+}
+
 // Real post pulled in — show the genuine handle, caption and cover, plus an
 // early auto-estimate of the Claim Score (or a clear not-scored state).
 function renderLiveUnverified(live){
@@ -2249,7 +2267,10 @@ function renderLiveUnverified(live){
   }
 
   document.getElementById('formulationFlag').innerHTML = '';
-  document.getElementById('valueCard').innerHTML = '';
+
+  const vc = document.getElementById('valueCard');
+  if (est){ vc.style.display = ''; vc.innerHTML = evidenceSummaryLive(est); }
+  else { vc.style.display = 'none'; vc.innerHTML = ''; }
 
   const rc = document.getElementById('reviewCard');
   rc.className = '';                                  // carousel, not a single card
