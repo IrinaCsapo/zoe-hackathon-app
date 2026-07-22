@@ -65,39 +65,46 @@ async function productSummary(caption, env) {
     '"summary": one factual sentence on what it is, its form and its marketed purpose}. ' +
     'If a field cannot be verified from real sources, set it to null (or [] for ingredients). Never guess ingredients.';
 
-  try {
-    const res = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], tools: [{ google_search: {} }] }),
-      }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    const cand = (data.candidates || [])[0] || {};
-    const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
-    const jm = text.match(/\{[\s\S]*\}/);
-    if (!jm) return null;
-    let obj;
-    try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
-    const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
-    const sources = chunks
-      .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
-      .filter((s) => s && s.uri)
-      .slice(0, 3);
-    return {
-      company: obj.company || null,
-      product: obj.product || null,
-      ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
-      mainIngredient: obj.mainIngredient || null,
-      summary: obj.summary || null,
-      sources,
-    };
-  } catch (e) {
-    return null;
+  async function ask(grounded) {
+    const body = { contents: [{ parts: [{ text: prompt }] }] };
+    if (grounded) body.tools = [{ google_search: {} }];
+    try {
+      const res = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      );
+      if (!res.ok) return null;
+      return await res.json();
+    } catch (e) {
+      return null;
+    }
   }
+
+  // Web-grounded first (best, with citations); fall back to the model's own
+  // knowledge if grounding is unavailable for this key/project, so we still
+  // return real product data rather than nothing.
+  const data = (await ask(true)) || (await ask(false));
+  if (!data) return null;
+
+  const cand = (data.candidates || [])[0] || {};
+  const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
+  const jm = text.match(/\{[\s\S]*\}/);
+  if (!jm) return null;
+  let obj;
+  try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
+  const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
+  const sources = chunks
+    .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
+    .filter((s) => s && s.uri)
+    .slice(0, 3);
+  return {
+    company: obj.company || null,
+    product: obj.product || null,
+    ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
+    mainIngredient: obj.mainIngredient || null,
+    summary: obj.summary || null,
+    sources,
+  };
 }
 
 export default {
