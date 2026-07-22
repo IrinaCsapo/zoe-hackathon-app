@@ -21,8 +21,8 @@
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
-// Tried in order until one has free-tier quota (some models return limit:0).
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest'];
+// Tried in order until one has free-tier quota (some models return limit:0/404).
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.0-flash'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -123,16 +123,23 @@ export default {
       const key = env && env.GEMINI_API_KEY;
       if (!key) return json({ keyPresent: false, note: 'GEMINI_API_KEY secret is not set on this Worker.' });
       const models = {};
+      let sample = null;
+      const testPrompt = 'Identify the real supplement "Bloom creatine gummies". Respond with ONLY JSON: {"company":..,"product":..,"ingredients":[..],"mainIngredient":..,"summary":..}';
       for (const m of GEMINI_MODELS) {
         try {
           const r = await fetch(
             'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key,
-            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply {"ok":true}' }] }] }) }
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: testPrompt }] }] }) }
           );
           models[m] = r.status;
+          if (r.ok && !sample) {
+            const d = await r.json();
+            const parts = (((d.candidates || [])[0] || {}).content || {}).parts || [];
+            sample = { model: m, text: parts.map((p) => p.text || '').join('').slice(0, 500) };
+          }
         } catch (e) { models[m] = 'error'; }
       }
-      return json({ keyPresent: true, models });
+      return json({ keyPresent: true, models, sample });
     }
 
     const link = new URL(request.url).searchParams.get('url');
