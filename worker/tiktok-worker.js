@@ -21,6 +21,9 @@
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
+// Tried in order until one has free-tier quota (some models return limit:0).
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-flash-latest'];
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
@@ -65,12 +68,12 @@ async function productSummary(caption, env) {
     '"summary": one factual sentence on what it is, its form and its marketed purpose}. ' +
     'If a field cannot be verified from real sources, set it to null (or [] for ingredients). Never guess ingredients.';
 
-  async function ask(grounded) {
+  async function ask(model, grounded) {
     const body = { contents: [{ parts: [{ text: prompt }] }] };
     if (grounded) body.tools = [{ google_search: {} }];
     try {
       const res = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
         { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       );
       if (!res.ok) return null;
@@ -80,10 +83,13 @@ async function productSummary(caption, env) {
     }
   }
 
-  // Web-grounded first (best, with citations); fall back to the model's own
-  // knowledge if grounding is unavailable for this key/project, so we still
-  // return real product data rather than nothing.
-  const data = (await ask(true)) || (await ask(false));
+  // Try each model until one has quota; prefer web-grounded, fall back to the
+  // model's own knowledge if grounding isn't available for that model.
+  let data = null;
+  for (const model of GEMINI_MODELS) {
+    data = (await ask(model, true)) || (await ask(model, false));
+    if (data) break;
+  }
   if (!data) return null;
 
   const cand = (data.candidates || [])[0] || {};
@@ -111,21 +117,22 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
-    // Temporary diagnostic: /?debug=gemini reports why the product lookup fails.
-    // Returns the Gemini call status + response body (never the key itself).
+    // Temporary diagnostic: /?debug=gemini reports which models have quota
+    // (200 = works, 429 = no free quota, 404 = model unavailable). Never the key.
     if (new URL(request.url).searchParams.get('debug') === 'gemini') {
       const key = env && env.GEMINI_API_KEY;
       if (!key) return json({ keyPresent: false, note: 'GEMINI_API_KEY secret is not set on this Worker.' });
-      const r = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with JSON {"ok":true}' }] }], tools: [{ google_search: {} }] }),
-        }
-      );
-      const body = await r.text();
-      return json({ keyPresent: true, status: r.status, body: body.slice(0, 900) });
+      const models = {};
+      for (const m of GEMINI_MODELS) {
+        try {
+          const r = await fetch(
+            'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply {"ok":true}' }] }] }) }
+          );
+          models[m] = r.status;
+        } catch (e) { models[m] = 'error'; }
+      }
+      return json({ keyPresent: true, models });
     }
 
     const link = new URL(request.url).searchParams.get('url');
