@@ -382,8 +382,8 @@
     <div class="tab-panel" id="tab-screenshot">
       <label class="upload-drop" id="uploadDrop">
         <span class="upload-icon">🖼️</span>
-        <span class="upload-title">Upload an image</span>
-        <span class="upload-hint">A saved post, a caption, a product label — any image</span>
+        <span class="upload-title">Upload a screenshot</span>
+        <span class="upload-hint">A photo of the product or packaging — we'll identify it and check the claims</span>
         <input type="file" accept="image/*" id="screenshotInput" onchange="handleScreenshot(this)" />
       </label>
       <div class="upload-preview" id="uploadPreview">
@@ -1069,10 +1069,10 @@ function starsHtml(rating, size){
 // CORS, or rate limit misbehaves, the app falls back to the static curated
 // content exactly as before. Nothing here is allowed to block or break the UI.
 
-function fetchWithTimeout(url, ms){
+function fetchWithTimeout(url, ms, opts){
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms || 6000);
-  return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  return fetch(url, Object.assign({}, opts, { signal: controller.signal })).finally(() => clearTimeout(timer));
 }
 
 function openAlexSearchUrl(query){
@@ -1467,9 +1467,36 @@ function handleScreenshot(input){
   renderScreenshotChips();
 }
 
-// Explicit user action (the "Analyse product" button) rather than firing on
-// file select — gives people a moment to see what they uploaded before we
-// run OCR + search on it.
+function fileToBase64(file){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1] || '');
+    r.onerror = () => reject(new Error('read failed'));
+    r.readAsDataURL(file);
+  });
+}
+
+// Send the uploaded image to the Worker, which runs the same Gemini vision +
+// web-search identification used for TikTok covers, and returns the product.
+async function identifyProductFromImage(file){
+  if (!WORKER_URL) return null;
+  try {
+    const base64 = await fileToBase64(file);
+    const res = await fetchWithTimeout(WORKER_URL, 25000, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mimeType: file.type || 'image/jpeg' })
+    });
+    if (!res.ok) return null;
+    const d = await res.json();
+    return d.product || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// "Analyse product": identify the product straight from the screenshot with
+// Gemini vision, then show the same results page as a pasted TikTok link.
 async function analyseImage(){
   const file = document.getElementById('screenshotInput').files && document.getElementById('screenshotInput').files[0];
   if (!file){
@@ -1482,18 +1509,16 @@ async function analyseImage(){
 
   analyseBtn.disabled = true;
   analyseBtn.textContent = 'Analysing…';
-  ocrStatus.textContent = 'Reading text from the image…';
+  ocrStatus.textContent = 'Identifying the product from your image…';
 
-  const text = await withTimeout(runOcr(file), 15000);
+  const product = await identifyProductFromImage(file);
   analyseBtn.disabled = false;
   analyseBtn.textContent = 'Analyse product';
 
-  if (text && text.trim().length > 2){
-    const cleaned = text.trim().replace(/\s+/g, ' ').slice(0, 220);
-    ocrStatus.textContent = 'Text found — searching…';
-    searchOcrText(cleaned);
+  if (product && (product.company || product.product || product.mainIngredient || (product.ingredients || []).length)){
+    openLiveCheck({ source: 'screenshot', platform: 'your screenshot', caption: '', thumbnail: URL.createObjectURL(file), product: product });
   } else {
-    ocrStatus.textContent = 'No text recognised — pick a product directly below, or search by brand';
+    ocrStatus.textContent = "Couldn't identify a product — try a clearer screenshot, or search by brand below";
   }
 }
 
@@ -1924,7 +1949,7 @@ function formatPostDate(ts){
 
 function openLiveCheck(live){
   currentIsUnverified = true;
-  lastUnverifiedQuery = live.authorName || (live.caption || '').slice(0, 60);
+  lastUnverifiedQuery = (live.product && live.product.product) || live.authorName || (live.caption || '').slice(0, 60);
   renderLiveUnverified(live);
   screenStack.push('screen-check');
   show('screen-check');
@@ -2296,28 +2321,41 @@ function renderLiveUnverified(live){
   const showName = live.authorName && live.authorName.replace(/\s+/g, '').toLowerCase() !== nameNoAt;
 
   const est = heuristicScore(live.caption, live.product);
+  const screenshot = live.source === 'screenshot';
+
+  const header = screenshot
+    ? '<div class="row-between" style="align-items:flex-start;">' +
+        '<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">' +
+          '<span class="review-name">From your screenshot</span>' +
+          '<span class="helpful">Product read from the image you uploaded</span>' +
+        '</div>' +
+        '<div class="score-bubble ' + (est ? 'sb-' + est.scoreTone : 'sb-gray') + '">' + (est ? est.score : '—') + '</div>' +
+      '</div>' +
+      '<div class="tag-row">' + pill('From your screenshot', 'gray') + pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') + '</div>'
+    : '<div class="row-between" style="align-items:flex-start;">' +
+        '<div style="display:flex;gap:11px;min-width:0;">' +
+          (live.avatar ? '<img class="live-avatar" src="' + live.avatar + '" alt="" onerror="this.remove()" />' : '') +
+          '<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">' +
+            '<span class="review-name">' + live.handle + (showName ? ' · ' + live.authorName : '') + '</span>' +
+            '<span class="helpful">' + (live.bio ? live.bio : ('Pulled live from ' + live.platform)) + '</span>' +
+            (metaLine ? '<span class="helpful">' + metaLine + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="score-bubble ' + (est ? 'sb-' + est.scoreTone : 'sb-gray') + '">' + (est ? est.score : '—') + '</div>' +
+      '</div>' +
+      '<div class="tag-row">' +
+        (live.paidPartnership ? pill('Paid partnership', 'amber') : '') +
+        pill('Fetched from TikTok', 'gray') +
+        pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') +
+      '</div>';
 
   document.getElementById('postCard').innerHTML =
-    '<div class="row-between" style="align-items:flex-start;">' +
-      '<div style="display:flex;gap:11px;min-width:0;">' +
-        (live.avatar ? '<img class="live-avatar" src="' + live.avatar + '" alt="" onerror="this.remove()" />' : '') +
-        '<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">' +
-          '<span class="review-name">' + live.handle + (showName ? ' · ' + live.authorName : '') + '</span>' +
-          '<span class="helpful">' + (live.bio ? live.bio : ('Pulled live from ' + live.platform)) + '</span>' +
-          (metaLine ? '<span class="helpful">' + metaLine + '</span>' : '') +
-        '</div>' +
-      '</div>' +
-      '<div class="score-bubble ' + (est ? 'sb-' + est.scoreTone : 'sb-gray') + '">' + (est ? est.score : '—') + '</div>' +
-    '</div>' +
-    '<div class="tag-row">' +
-      (live.paidPartnership ? pill('Paid partnership', 'amber') : '') +
-      pill('Fetched from TikTok', 'gray') +
-      pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') +
-    '</div>' +
-    (live.thumbnail ? '<div class="post-photo"><img src="' + live.thumbnail + '" alt="post" onerror="this.remove()" /></div>' : '') +
+    header +
+    (live.thumbnail ? '<div class="post-photo"><img src="' + live.thumbnail + '" alt="uploaded" onerror="this.remove()" /></div>' : '') +
     productCardHtml(live.product) +
-    '<span class="section-label" style="margin-top:2px;">What the creator claims</span>' +
-    '<div class="quote-box">"' + (live.caption || '').replace(/^"|"$/g, '') + '"</div>';
+    (screenshot && !live.caption ? '' :
+      '<span class="section-label" style="margin-top:2px;">What the creator claims</span>' +
+      '<div class="quote-box">"' + (live.caption || '').replace(/^"|"$/g, '') + '"</div>');
 
   if (est){
     document.getElementById('claimsBanner').innerHTML = scoreBanner(est);

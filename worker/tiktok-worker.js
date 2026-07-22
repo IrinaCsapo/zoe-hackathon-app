@@ -26,7 +26,7 @@ const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.0-flash'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -91,37 +91,34 @@ function productPrompt(hint) {
 // Real product summary via Gemini (with Google Search grounding when available).
 // Returns null if no GEMINI_API_KEY is set or nothing parses. Never invents
 // ingredients — unknown fields come back null.
-async function productSummary(caption, thumbnail, env) {
-  const key = env && env.GEMINI_API_KEY;
-  if (!key || !caption) return null;
-  const hint = caption.replace(/#\S+/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
-  if (hint.length < 3) return null;
+function parseProduct(data) {
+  const cand = (data.candidates || [])[0] || {};
+  const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
+  const jm = text.match(/\{[\s\S]*\}/);
+  if (!jm) return null;
+  let obj;
+  try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
+  if (!obj || (!obj.company && !obj.product && !obj.summary && !(Array.isArray(obj.ingredients) && obj.ingredients.length))) return null;
+  const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
+  const sources = chunks
+    .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
+    .filter((s) => s && s.uri)
+    .slice(0, 3);
+  return {
+    company: obj.company || null,
+    product: obj.product || null,
+    ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
+    mainIngredient: obj.mainIngredient || null,
+    summary: obj.summary || null,
+    sources,
+  };
+}
 
-  const prompt = productPrompt(hint);
-  const img = await imagePart(thumbnail); // lets the model read the product off the cover
-
-  function parseProduct(data) {
-    const cand = (data.candidates || [])[0] || {};
-    const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
-    const jm = text.match(/\{[\s\S]*\}/);
-    if (!jm) return null;
-    let obj;
-    try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
-    if (!obj || (!obj.company && !obj.product && !obj.summary && !(Array.isArray(obj.ingredients) && obj.ingredients.length))) return null;
-    const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
-    const sources = chunks
-      .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
-      .filter((s) => s && s.uri)
-      .slice(0, 3);
-    return {
-      company: obj.company || null,
-      product: obj.product || null,
-      ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
-      mainIngredient: obj.mainIngredient || null,
-      summary: obj.summary || null,
-      sources,
-    };
-  }
+// Identify a real product from a text hint and/or an image, via Gemini (grounded
+// search when available). Shared by TikTok links and uploaded screenshots.
+async function identifyProduct(hint, img, key) {
+  if (!key || (!hint && !img)) return null;
+  const prompt = productPrompt(hint || 'the supplement product shown in the image');
 
   async function ask(model, grounded) {
     const parts = img ? [{ text: prompt }, img] : [{ text: prompt }];
@@ -152,9 +149,31 @@ async function productSummary(caption, thumbnail, env) {
   return null;
 }
 
+// From a TikTok post: identify the product from its caption + cover image.
+async function productSummary(caption, thumbnail, env) {
+  const key = env && env.GEMINI_API_KEY;
+  if (!key || !caption) return null;
+  const hint = caption.replace(/#\S+/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
+  if (hint.length < 3) return null;
+  const img = await imagePart(thumbnail);
+  return identifyProduct(hint, img, key);
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+
+    // Screenshot upload: identify a product straight from an uploaded image.
+    // Body: { image: <base64>, mimeType?: string, caption?: string }
+    if (request.method === 'POST') {
+      const key = env && env.GEMINI_API_KEY;
+      let body = {};
+      try { body = await request.json(); } catch (e) {}
+      const img = body.image ? { inline_data: { mime_type: body.mimeType || 'image/jpeg', data: body.image } } : null;
+      const hint = (body.caption || '').replace(/\s+/g, ' ').trim().slice(0, 180);
+      const product = key ? await identifyProduct(hint, img, key) : null;
+      return json({ product });
+    }
 
     // Temporary diagnostic: /?debug=gemini reports which models have quota
     // (200 = works, 429 = no free quota, 404 = model unavailable). Never the key.
@@ -178,7 +197,7 @@ export default {
           }
         } catch (e) { models[m] = 'error'; }
       }
-      return json({ v: 4, keyPresent: true, models, sample });
+      return json({ v: 5, keyPresent: true, models, sample });
     }
 
     const link = new URL(request.url).searchParams.get('url');
