@@ -2262,7 +2262,7 @@ function escHtml(s){
 // Real, web-grounded product summary card (company, product, contents, one-line
 // description, sources) — only shown when the Worker's Gemini lookup returns data.
 function productCardHtml(p){
-  if (!p || (!p.summary && !p.company && !p.product && !(p.ingredients || []).length)) return '';
+  if (!p || (!p.company && !p.product && !p.mainIngredient && !(p.ingredients || []).length)) return '';
   const ings = (p.ingredients || []).slice(0, 10);
   const mainWord = p.mainIngredient ? String(p.mainIngredient).toLowerCase().split(' ')[0] : '';
   return '<div class="tagged-product">' +

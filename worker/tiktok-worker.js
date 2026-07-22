@@ -32,6 +32,31 @@ const CORS = {
 
 const urlOf = (v) => (typeof v === 'string' ? v : (v && v.urlList && v.urlList[0]) || '');
 
+// Base64-encode an ArrayBuffer in chunks (btoa + full spread overflows on big images).
+function toBase64(buf) {
+  const bytes = new Uint8Array(buf);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+// Fetch the cover image and return it as a Gemini inline_data part, so the model
+// can read a brand/product name off the packaging when the caption doesn't say it.
+async function imagePart(thumbnail) {
+  if (!thumbnail) return null;
+  try {
+    const r = await fetch(thumbnail);
+    if (!r.ok) return null;
+    const buf = await r.arrayBuffer();
+    if (buf.byteLength > 4000000) return null;
+    return { inline_data: { mime_type: r.headers.get('content-type') || 'image/jpeg', data: toBase64(buf) } };
+  } catch (e) {
+    return null;
+  }
+}
+
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {
     status,
@@ -54,7 +79,8 @@ async function oembedThumb(link) {
 // the google_search tool handles that. That phrasing made the ungrounded
 // fallback answer in prose instead of clean JSON.
 function productPrompt(hint) {
-  return 'Identify the real supplement product described here: "' + hint + '". ' +
+  return 'Identify the real supplement product shown in the attached image and/or described here: "' + hint + '". ' +
+    'Read any visible brand or product name off the packaging in the image. ' +
     'Respond with ONLY a JSON object, no markdown and no commentary, in this exact shape: ' +
     '{"company": brand or null, "product": product name or null, "ingredients": [real listed ingredients only], ' +
     '"mainIngredient": the single dominant active ingredient or null, ' +
@@ -65,13 +91,14 @@ function productPrompt(hint) {
 // Real product summary via Gemini (with Google Search grounding when available).
 // Returns null if no GEMINI_API_KEY is set or nothing parses. Never invents
 // ingredients — unknown fields come back null.
-async function productSummary(caption, env) {
+async function productSummary(caption, thumbnail, env) {
   const key = env && env.GEMINI_API_KEY;
   if (!key || !caption) return null;
   const hint = caption.replace(/#\S+/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
   if (hint.length < 3) return null;
 
   const prompt = productPrompt(hint);
+  const img = await imagePart(thumbnail); // lets the model read the product off the cover
 
   function parseProduct(data) {
     const cand = (data.candidates || [])[0] || {};
@@ -97,7 +124,8 @@ async function productSummary(caption, env) {
   }
 
   async function ask(model, grounded) {
-    const body = { contents: [{ parts: [{ text: prompt }] }] };
+    const parts = img ? [{ text: prompt }, img] : [{ text: prompt }];
+    const body = { contents: [{ parts }] };
     if (grounded) body.tools = [{ google_search: {} }];
     try {
       const res = await fetch(
@@ -150,7 +178,7 @@ export default {
           }
         } catch (e) { models[m] = 'error'; }
       }
-      return json({ v: 3, keyPresent: true, models, sample });
+      return json({ v: 4, keyPresent: true, models, sample });
     }
 
     const link = new URL(request.url).searchParams.get('url');
@@ -187,7 +215,7 @@ export default {
         postDate: item.createTime ? Number(item.createTime) : null,
         paidPartnership: item.isAd === true,
       };
-      out.product = await productSummary(out.caption, env); // real web-grounded product data, or null
+      out.product = await productSummary(out.caption, out.thumbnail, env); // real product data (from caption + cover image), or null
       return json(out);
     } catch (e) {
       return json({ error: String(e && e.message || e) }, 500);
