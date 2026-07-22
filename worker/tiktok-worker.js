@@ -50,23 +50,28 @@ async function oembedThumb(link) {
   }
 }
 
-// Real product summary via Gemini + Google Search grounding. Returns null if no
-// GEMINI_API_KEY is set or anything fails. Strictly instructed to use only
-// web-verified data and never invent ingredients (unknown fields => null).
+// Prompt for the product lookup. Deliberately does NOT say "search the web" —
+// the google_search tool handles that. That phrasing made the ungrounded
+// fallback answer in prose instead of clean JSON.
+function productPrompt(hint) {
+  return 'Identify the real supplement product described here: "' + hint + '". ' +
+    'Respond with ONLY a JSON object, no markdown and no commentary, in this exact shape: ' +
+    '{"company": brand or null, "product": product name or null, "ingredients": [real listed ingredients only], ' +
+    '"mainIngredient": the single dominant active ingredient or null, ' +
+    '"summary": one factual sentence on what it is and its marketed purpose}. ' +
+    'Use only real, verifiable information and never invent ingredients. If a field is unknown, use null (or [] for ingredients).';
+}
+
+// Real product summary via Gemini (with Google Search grounding when available).
+// Returns null if no GEMINI_API_KEY is set or nothing parses. Never invents
+// ingredients — unknown fields come back null.
 async function productSummary(caption, env) {
   const key = env && env.GEMINI_API_KEY;
   if (!key || !caption) return null;
   const hint = caption.replace(/#\S+/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
   if (hint.length < 3) return null;
 
-  const prompt =
-    'Identify the real supplement product described here: "' + hint + '". ' +
-    'Use Google Search to get accurate, real information — do NOT invent anything. ' +
-    'Respond with ONLY a JSON object (no markdown, no commentary) in this shape: ' +
-    '{"company": brand or null, "product": product name or null, "ingredients": [real listed ingredients], ' +
-    '"mainIngredient": the single dominant active ingredient or null, ' +
-    '"summary": one factual sentence on what it is, its form and its marketed purpose}. ' +
-    'If a field cannot be verified from real sources, set it to null (or [] for ingredients). Never guess ingredients.';
+  const prompt = productPrompt(hint);
 
   function parseProduct(data) {
     const cand = (data.candidates || [])[0] || {};
@@ -130,7 +135,7 @@ export default {
       if (!key) return json({ keyPresent: false, note: 'GEMINI_API_KEY secret is not set on this Worker.' });
       const models = {};
       let sample = null;
-      const testPrompt = 'Identify the real supplement "Bloom creatine gummies". Respond with ONLY JSON: {"company":..,"product":..,"ingredients":[..],"mainIngredient":..,"summary":..}';
+      const testPrompt = productPrompt('Bloom Creatine Gummies by Bloom Nutrition');
       for (const m of GEMINI_MODELS) {
         try {
           const r = await fetch(
@@ -145,7 +150,7 @@ export default {
           }
         } catch (e) { models[m] = 'error'; }
       }
-      return json({ keyPresent: true, models, sample });
+      return json({ v: 3, keyPresent: true, models, sample });
     }
 
     const link = new URL(request.url).searchParams.get('url');
