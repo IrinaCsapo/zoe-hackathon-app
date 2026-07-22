@@ -264,6 +264,9 @@
   .bar-track{height:6px;border-radius:3px;background:var(--border);flex:1;overflow:hidden;}
   .bar-fill{height:100%;background:var(--star);}
   .review-card{display:flex;flex-direction:column;gap:8px;}
+  .review-slide{flex:0 0 auto;width:250px;background:var(--surface);border:1px solid var(--border);border-radius:16px;
+    padding:14px;display:flex;flex-direction:column;gap:9px;box-shadow:0 1px 2px rgba(40,30,80,0.03);}
+  .review-slide .review-body{font-size:12.5px;line-height:1.5;}
   .review-head{display:flex;gap:10px;align-items:center;}
   .avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;}
   .review-name{font-size:12.5px;font-weight:600;}
@@ -1633,7 +1636,9 @@ function renderCheck(id, live){
 
   document.getElementById('valueCard').innerHTML = valueAnalysisHtml(p);
 
-  document.getElementById('reviewCard').innerHTML = reviewHtml(p.review);
+  const rc = document.getElementById('reviewCard');
+  rc.className = 'card review-card';                  // restore single-card style (live view clears it)
+  rc.innerHTML = reviewHtml(p.review);
   renderHigherScored(id);
 
   const cta = document.getElementById('checkCta');
@@ -1918,8 +1923,140 @@ function openLiveCheck(live){
   show('screen-check');
 }
 
-// Real post pulled in, but the product isn't in the curated library yet — show
-// the genuine handle, caption and cover, clearly marked as not-yet-scored.
+// A lightweight, honest stand-in for the full LLM + evidence pipeline: it reads
+// the caption, recognises the supplement, matches the claims it's making, and
+// grades each against real, well-established evidence patterns. Not a per-source
+// review — it's clearly surfaced in the UI as an "Early estimate" — but it's
+// grounded in genuine consensus, not random numbers.
+const EVIDENCE_KB = [
+  {
+    match: ["collagen"],
+    sourceQuery: "collagen peptides skin elasticity wrinkles randomized controlled trial",
+    claims: [
+      { match: ["2 week", "two week", "14 day", "overnight", "instantly", "fast", "quick"], claim: "Visible skin change in ~2 weeks", tier: "Limited evidence", tone: "amber", note: "Most collagen-and-skin studies run 8–12 weeks — a rapid visible change isn't well supported." },
+      { match: ["skin", "glow", "radiant", "complexion", "hydrat"], claim: "Improves skin elasticity & hydration", tier: "Moderate evidence", tone: "teal", note: "Meta-analyses show modest skin benefits after 8–12 weeks of daily use." },
+      { match: ["wrinkle", "fine line", "anti-aging", "ageing", "aging", "younger"], claim: "Reduces fine lines and wrinkles", tier: "Moderate evidence", tone: "teal", note: "Several RCTs show small improvements in wrinkle depth over 8+ weeks." },
+      { match: ["joint", "mobility"], claim: "Supports joint comfort", tier: "Limited evidence", tone: "amber", note: "A few small trials suggest benefit, but the evidence is mixed." },
+      { match: ["hair", "nail"], claim: "Strengthens hair & nails", tier: "Limited evidence", tone: "amber", note: "Mostly anecdotal — few controlled trials on hair or nail growth." }
+    ]
+  },
+  {
+    match: ["creatine"],
+    sourceQuery: "creatine monohydrate strength muscle cognition randomized controlled trial",
+    claims: [
+      { match: ["strength", "power", "lift", "gym", "workout", "performance"], claim: "Improves strength & power", tier: "Strong evidence", tone: "teal", note: "One of the most replicated results in sports science — 500+ trials." },
+      { match: ["muscle", "lean", "gains", "build"], claim: "Builds lean muscle", tier: "Strong evidence", tone: "teal", note: "Reliably supports muscle gain alongside resistance training." },
+      { match: ["focus", "brain", "cognit", "memory", "mental", "clarity"], claim: "Sharpens focus & memory", tier: "Limited evidence", tone: "amber", note: "Cognitive effects show mainly in sleep-deprived or older adults, not general use." },
+      { match: ["energy"], claim: "Boosts everyday energy", tier: "Weak evidence", tone: "red", note: "No literature ties creatine to general energy; its mechanism is short anaerobic power." },
+      { match: ["recovery"], claim: "Speeds muscle recovery", tier: "Mixed evidence", tone: "amber", note: "Some recovery markers improve, but the evidence is less consistent than for strength." }
+    ]
+  },
+  {
+    match: ["magnesium"],
+    sourceQuery: "magnesium glycinate sleep quality anxiety randomized controlled trial",
+    claims: [
+      { match: ["sleep", "rest", "deep sleep"], claim: "Supports better sleep", tier: "Moderate evidence", tone: "teal", note: "Backed by several studies on magnesium and sleep quality." },
+      { match: ["stress", "anxiety", "calm", "cortisol"], claim: "Reduces stress & anxiety", tier: "Limited evidence", tone: "amber", note: "A few small studies suggest benefit; the effect size is unclear." },
+      { match: ["cramp", "muscle"], claim: "Eases muscle cramps", tier: "Limited evidence", tone: "amber", note: "Evidence is mixed — mainly helps if you're deficient." }
+    ]
+  },
+  {
+    match: ["ashwagandha", "ashwaganda"],
+    sourceQuery: "ashwagandha KSM-66 cortisol stress randomized controlled trial",
+    claims: [
+      { match: ["stress", "cortisol", "calm"], claim: "Lowers stress & cortisol", tier: "Moderate evidence", tone: "teal", note: "Several small RCTs show modest cortisol reduction over ~8 weeks." },
+      { match: ["sleep"], claim: "Improves sleep", tier: "Limited evidence", tone: "amber", note: "Early evidence only; more research is needed." },
+      { match: ["anxiety", "xanax", "depress"], claim: "Comparable to anti-anxiety meds", tier: "Weak evidence", tone: "red", note: "No trials compare it to prescription anxiolytics — this claim isn't supported." }
+    ]
+  },
+  {
+    match: ["sea moss", "seamoss", "irish moss"],
+    sourceQuery: "sea moss irish moss skin thyroid immunity clinical trial",
+    claims: [
+      { match: ["skin", "acne", "glow"], claim: "Clears / improves skin", tier: "Limited evidence", tone: "amber", note: "Provides minerals, but no controlled trials show it clears skin — largely anecdotal." },
+      { match: ["thyroid", "iodine"], claim: "Supports thyroid", tier: "Limited evidence", tone: "amber", note: "It's high in iodine, which matters for thyroid — but too much can harm it." },
+      { match: ["immun"], claim: "Boosts immunity", tier: "Weak evidence", tone: "red", note: "No human trials support an immune benefit from sea moss." },
+      { match: ["hair", "growth"], claim: "Triggers hair growth", tier: "Weak evidence", tone: "red", note: "No published trials link sea moss to measurable hair growth." }
+    ]
+  },
+  {
+    match: ["detox tea", "skinny tea", "slimming", "detox"],
+    sourceQuery: "detox slimming tea weight loss senna randomized controlled trial",
+    claims: [
+      { match: ["weight", "fat", "slim", "melt", "skinny"], claim: "Causes weight / fat loss", tier: "Unsupported", tone: "red", note: "Detox teas act as diuretics/laxatives — the drop is water weight, not fat, and it returns." },
+      { match: ["bloat"], claim: "Beats bloating", tier: "Limited evidence", tone: "amber", note: "Any quick de-bloat is short-term fluid loss, not a lasting change." },
+      { match: ["detox", "cleanse", "toxin"], claim: "Detoxes the body", tier: "Unsupported", tone: "red", note: "A healthy liver and kidneys already clear waste — no evidence a tea adds benefit." }
+    ]
+  },
+  {
+    match: ["greens", "super greens", "green powder", "superfood"],
+    sourceQuery: "greens powder supplement energy gut bloating clinical trial",
+    claims: [
+      { match: ["energy"], claim: "Boosts all-day energy", tier: "Weak evidence", tone: "red", note: "No controlled trials on these blends show an energy benefit at typical doses." },
+      { match: ["bloat", "gut", "digest"], claim: "Improves gut / bloating", tier: "Weak evidence", tone: "red", note: "Little trial evidence for the blend as formulated." },
+      { match: ["detox", "toxin"], claim: "Detoxes the body", tier: "Unsupported", tone: "red", note: "No evidence a greens powder 'detoxes' beyond normal liver/kidney function." },
+      { match: ["nutrient", "vitamin", "veg", "daily"], claim: "Replaces your daily veg", tier: "Limited evidence", tone: "amber", note: "Adds some nutrients, but doesn't match whole vegetables (fibre, volume)." }
+    ]
+  }
+];
+
+function heuristicScore(caption){
+  const s = (caption || '').toLowerCase();
+  const kb = EVIDENCE_KB.find(k => k.match.some(m => s.includes(m)));
+  if (!kb) return null;
+  let claims = kb.claims.filter(c => c.match.some(m => s.includes(m)));
+  if (!claims.length) claims = kb.claims.slice(0, 2); // recognised the product but no specific claim words
+  claims = claims.slice(0, 4);
+  const pts = { 'Strong evidence': 88, 'Moderate evidence': 66, 'Mixed evidence': 50, 'Limited evidence': 40, 'Weak evidence': 22, 'Unsupported': 12 };
+  const avg = Math.round(claims.reduce((a, c) => a + (pts[c.tier] != null ? pts[c.tier] : 40), 0) / claims.length);
+  const scoreTone = avg >= 63 ? 'teal' : avg >= 38 ? 'amber' : 'red';
+  const scoreLabel = avg >= 80 ? 'Strongly backed' : avg >= 63 ? 'Backed' : avg >= 38 ? 'Mixed evidence' : 'Weak';
+  return { score: avg, scoreTone, scoreLabel, claims, sourceQuery: kb.sourceQuery };
+}
+
+// Illustrative (made-up) reviews for the live path, tagged by sentiment so the
+// carousel can be weighted to match the estimated score.
+const LIVE_REVIEWS = [
+  { name: 'Sophie M.', initials: 'SM', bg: '#9FE1CB', fg: '#04342C', rating: 5, sentiment: 'pos', tag: 'Helped', tagTone: 'teal', body: 'Genuinely noticed a difference after about a month of daily use. Will repurchase.' },
+  { name: 'Priya K.', initials: 'PK', bg: '#B5D4F4', fg: '#042C53', rating: 5, sentiment: 'pos', tag: 'Love it', tagTone: 'teal', body: 'Part of my routine now — subtle but real. Ignore the miracle claims and it\'s solid.' },
+  { name: 'Amelia R.', initials: 'AR', bg: '#CECBF6', fg: '#26215C', rating: 4, sentiment: 'pos', tag: 'Helped', tagTone: 'teal', body: 'Takes a while to kick in but I do feel better. Wish it were a bit cheaper.' },
+  { name: 'Chloe B.', initials: 'CB', bg: '#FAC775', fg: '#412402', rating: 3, sentiment: 'mix', tag: 'Slower than claimed', tagTone: 'gray', body: 'Nothing like the video promised — maybe a small change by week 8.' },
+  { name: 'Hannah T.', initials: 'HT', bg: '#F5C4B3', fg: '#4A1B0C', rating: 3, sentiment: 'mix', tag: 'Mixed', tagTone: 'gray', body: 'Honestly can\'t tell if it\'s doing much, but it doesn\'t hurt. Nice taste.' },
+  { name: 'Georgia P.', initials: 'GP', bg: '#C0DD97', fg: '#173404', rating: 2, sentiment: 'neg', tag: 'No change', tagTone: 'gray', body: 'Bought it off a TikTok. Finished the tub and felt exactly the same. Wouldn\'t rebuy.' },
+  { name: 'Maya L.', initials: 'ML', bg: '#F0997B', fg: '#4A1B0C', rating: 2, sentiment: 'neg', tag: 'Overhyped', tagTone: 'gray', body: 'The before/afters are doing a lot of heavy lifting. Didn\'t do much for me.' },
+  { name: 'Erin W.', initials: 'EW', bg: '#F4C0D1', fg: '#4B1528', rating: 1, sentiment: 'neg', tag: 'Disappointed', tagTone: 'gray', body: 'Pure marketing. All it gave me was an emptier wallet.' }
+];
+
+function pickLiveReviews(tone){
+  const pos = LIVE_REVIEWS.filter(r => r.sentiment === 'pos');
+  const mix = LIVE_REVIEWS.filter(r => r.sentiment === 'mix');
+  const neg = LIVE_REVIEWS.filter(r => r.sentiment === 'neg');
+  if (tone === 'teal') return [pos[0], pos[1], pos[2], mix[0], neg[0]];
+  if (tone === 'red')  return [neg[0], neg[1], neg[2], mix[0], pos[0]];
+  return [mix[0], pos[0], neg[0], mix[1], pos[1]];
+}
+
+function liveReviewsHtml(tone){
+  return '<div class="hscroll" id="liveReviews">' +
+    pickLiveReviews(tone).filter(Boolean).map(r =>
+      '<div class="review-slide">' +
+        '<div class="review-head">' +
+          '<div class="avatar" style="background:' + r.bg + ';color:' + r.fg + ';">' + r.initials + '</div>' +
+          '<div style="display:flex;flex-direction:column;">' +
+            '<span class="review-name">' + r.name + '</span>' +
+            '<div class="stars">' + starsHtml(r.rating, 10) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<span class="review-body">' + r.body + '</span>' +
+        '<div class="tag-row">' + pill(r.tag, r.tagTone) + '</div>' +
+      '</div>'
+    ).join('') +
+  '</div>' +
+  '<span class="helpful" style="padding:0 2px;">Illustrative reviews — sample sentiment for this kind of product, not verified purchases.</span>';
+}
+
+// Real post pulled in — show the genuine handle, caption and cover, plus an
+// early auto-estimate of the Claim Score (or a clear not-scored state).
 function renderLiveUnverified(live){
   const followers = live.followerCount ? formatCount(live.followerCount) + ' followers' : '';
   const posted = live.postDate ? 'Posted ' + formatPostDate(live.postDate) : '';
@@ -1928,6 +2065,8 @@ function renderLiveUnverified(live){
   // (many creators' display name == handle, which reads as a duplicate).
   const nameNoAt = (live.handle || '').replace(/[@\s]/g, '').toLowerCase();
   const showName = live.authorName && live.authorName.replace(/\s+/g, '').toLowerCase() !== nameNoAt;
+
+  const est = heuristicScore(live.caption);
 
   document.getElementById('postCard').innerHTML =
     '<div class="row-between" style="align-items:flex-start;">' +
@@ -1939,32 +2078,49 @@ function renderLiveUnverified(live){
           (metaLine ? '<span class="helpful">' + metaLine + '</span>' : '') +
         '</div>' +
       '</div>' +
-      '<div class="score-bubble sb-gray">—</div>' +
+      '<div class="score-bubble ' + (est ? 'sb-' + est.scoreTone : 'sb-gray') + '">' + (est ? est.score : '—') + '</div>' +
     '</div>' +
     '<div class="tag-row">' +
       (live.paidPartnership ? pill('Paid partnership', 'amber') : '') +
       pill('Fetched from TikTok', 'gray') +
-      pill('Not yet evidence-checked', 'gray') +
+      pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') +
     '</div>' +
     (live.thumbnail ? '<div class="post-photo"><img src="' + live.thumbnail + '" alt="post" onerror="this.remove()" /></div>' : '') +
     '<span class="section-label" style="margin-top:2px;">Claim summary</span>' +
     '<div class="quote-box">"' + (live.caption || '').replace(/^"|"$/g, '') + '"</div>';
 
-  document.getElementById('claimsBanner').innerHTML =
-    '<div class="score-banner score-banner-gray">' +
-      '<div><span class="score-banner-label">Claim score</span><span class="score-banner-value">—</span></div>' +
-      '<span class="score-banner-tag">Not yet evidence-checked</span>' +
-    '</div>';
-
-  document.getElementById('claimsCard').innerHTML =
-    '<div class="claim-row"><span class="claim-title">What the post claims</span>' +
-      '<span class="claim-note">' + (live.caption || 'No caption found.') + '</span></div>' +
-    '<span class="helpful">This product isn\'t in Vera\'s curated library yet, so we can\'t score its claims against evidence — but the handle, caption and cover above are pulled live from the real post.</span>';
+  if (est){
+    document.getElementById('claimsBanner').innerHTML = scoreBanner(est);
+    document.getElementById('claimsCard').innerHTML =
+      est.claims.map((c, i) =>
+        (i > 0 ? '<div class="divider"></div>' : '') +
+        '<div class="claim-row"><div class="claim-top"><span class="claim-title">' + c.claim + '</span>' + pill(c.tier, c.tone) + '</div>' +
+        '<span class="claim-note">' + c.note + '</span></div>'
+      ).join('') +
+      sourceRowHtml({ sourceQuery: est.sourceQuery }, 'studyCount-live') +
+      '<span class="helpful">⚡ Early estimate — claims read from the caption and matched to general evidence patterns. A full source-by-source review is the next step.</span>';
+    loadStudyCount({ sourceQuery: est.sourceQuery }, 'studyCount-live');
+  } else {
+    document.getElementById('claimsBanner').innerHTML =
+      '<div class="score-banner score-banner-gray">' +
+        '<div><span class="score-banner-label">Claim score</span><span class="score-banner-value">—</span></div>' +
+        '<span class="score-banner-tag">Not yet evidence-checked</span>' +
+      '</div>';
+    document.getElementById('claimsCard').innerHTML =
+      '<div class="claim-row"><span class="claim-title">What the post claims</span>' +
+        '<span class="claim-note">' + (live.caption || 'No caption found.') + '</span></div>' +
+      '<span class="helpful">We couldn\'t recognise this product type yet, so it isn\'t scored — but the handle, caption and cover above are pulled live from the real post.</span>';
+  }
 
   document.getElementById('formulationFlag').innerHTML = '';
   document.getElementById('valueCard').innerHTML = '';
-  document.getElementById('reviewCard').innerHTML = '<div class="empty-state">No reviews on file for this product yet.</div>';
+
+  const rc = document.getElementById('reviewCard');
+  rc.className = '';                                  // carousel, not a single card
+  rc.innerHTML = liveReviewsHtml(est ? est.scoreTone : 'amber');
+
   renderHigherScored('__unverified__');
+  enableHScroll();                                   // bind wheel/drag on the new carousel
 
   const cta = document.getElementById('checkCta');
   if (cta) cta.textContent = 'Search real databases for this →';
