@@ -215,6 +215,11 @@
     border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;position:relative;}
   .tagged-thumb svg{width:78%;height:78%;}
   .tagged-name{font-family:var(--font-display);font-size:17px;font-weight:600;letter-spacing:-0.01em;line-height:1.2;margin-top:1px;}
+  .prod-card{background:var(--surface-alt);border-radius:14px;padding:13px 14px;display:flex;flex-direction:column;gap:8px;}
+  .prod-ings-wrap{display:flex;flex-direction:column;gap:5px;}
+  .prod-ings{display:flex;flex-wrap:wrap;gap:6px;}
+  .ing-chip{font-size:11px;font-weight:600;color:var(--text-secondary);background:var(--surface);border:1px solid var(--border);border-radius:999px;padding:4px 10px;}
+  .ing-main{color:var(--brand-dark);background:var(--brand-light);border-color:var(--brand-light);}
   .score-bubble{width:54px;height:54px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     flex-shrink:0;font-family:var(--font-display);font-weight:600;font-size:23px;line-height:1;}
   .sb-teal{background:var(--teal-bg);color:var(--teal-text);}
@@ -2114,6 +2119,37 @@ const EVIDENCE_KB = [
     claims: [
       { match: ["cold", "flu", "sick", "immun"], claim: "Fights colds & flu", tier: "Limited evidence", tone: "amber", note: "Small trials suggest shorter cold/flu symptoms, but the evidence is thin." }
     ]
+  },
+  {
+    match: ["caffeine"],
+    sourceQuery: "caffeine energy alertness fat oxidation randomized controlled trial",
+    claims: [
+      { match: ["energy", "alert", "focus", "awake", "wake"], claim: "Boosts energy & alertness", tier: "Strong evidence", tone: "teal", note: "Well-established — caffeine reliably improves alertness and reduces fatigue." },
+      { match: ["fat", "burn", "metabolism", "thermogenic", "weight", "slim", "cut"], claim: "Burns fat / boosts metabolism", tier: "Limited evidence", tone: "amber", note: "Raises metabolism slightly and short-term, but tolerance builds — it's not a fat-loss solution." }
+    ]
+  },
+  {
+    match: ["green tea", "egcg", "matcha"],
+    sourceQuery: "green tea extract EGCG weight loss metabolism randomized controlled trial",
+    claims: [
+      { match: ["fat", "burn", "weight", "slim", "metabolism", "cut", "thermogenic"], claim: "Burns fat / aids weight loss", tier: "Limited evidence", tone: "amber", note: "Small, inconsistent effects on weight; the catechins raise metabolism only slightly." },
+      { match: ["antioxidant", "detox", "health"], claim: "Antioxidant benefits", tier: "Limited evidence", tone: "amber", note: "Rich in antioxidants, but health-outcome evidence from supplements is limited." }
+    ]
+  },
+  {
+    match: ["tongkat", "longjack", "eurycoma"],
+    sourceQuery: "tongkat ali eurycoma testosterone stress energy randomized controlled trial",
+    claims: [
+      { match: ["testosterone", "muscle", "libido", "sex", "male", "gains"], claim: "Raises testosterone & libido", tier: "Limited evidence", tone: "amber", note: "Some small trials show modest effects, often in stressed or older men — more research needed." },
+      { match: ["energy", "stress", "mood", "cortisol"], claim: "Boosts energy & lowers stress", tier: "Limited evidence", tone: "amber", note: "Early evidence for stress and fatigue; not well established." }
+    ]
+  },
+  {
+    match: ["fat burner", "thermogenic", "garcinia", "white kidney bean", "carb blocker", "cut xtreme"],
+    sourceQuery: "thermogenic fat burner supplement weight loss randomized controlled trial",
+    claims: [
+      { match: ["fat", "burn", "weight", "slim", "cut", "metabolism", "belly"], claim: "Burns fat / causes weight loss", tier: "Weak evidence", tone: "red", note: "Fat-burner blends show little reliable weight-loss benefit beyond a small caffeine effect." }
+    ]
   }
 ];
 
@@ -2128,12 +2164,21 @@ function supplementQueryFromCaption(caption){
   return (words.slice(0, 6).join(' ') || 'dietary supplement') + ' clinical trial';
 }
 
-function heuristicScore(caption){
-  const s = (caption || '').toLowerCase();
-  const kb = EVIDENCE_KB.find(k => k.match.some(m => s.includes(m)));
+function heuristicScore(caption, product){
+  const cap = (caption || '').toLowerCase();
+  const main = product && product.mainIngredient ? String(product.mainIngredient).toLowerCase() : '';
+  const ingredientText = product
+    ? [product.mainIngredient, (product.ingredients || []).join(' '), product.summary].filter(Boolean).join(' ').toLowerCase()
+    : '';
+  // Grade against the real dominant ingredient first, then any listed ingredient
+  // or the product summary, and only fall back to the marketing caption.
+  const kb = (main && EVIDENCE_KB.find(k => k.match.some(m => main.includes(m))))
+          || (ingredientText && EVIDENCE_KB.find(k => k.match.some(m => ingredientText.includes(m))))
+          || EVIDENCE_KB.find(k => k.match.some(m => cap.includes(m)));
   if (kb){
-    let claims = kb.claims.filter(c => c.match.some(m => s.includes(m)));
-    if (!claims.length) claims = kb.claims.slice(0, 2); // recognised the product but no specific claim words
+    const claimText = ingredientText + ' ' + cap;   // the marketed benefits (from summary + caption)
+    let claims = kb.claims.filter(c => c.match.some(m => claimText.includes(m)));
+    if (!claims.length) claims = kb.claims.slice(0, 2); // recognised the ingredient but no specific claim words
     claims = claims.slice(0, 4);
     const pts = { 'Strong evidence': 88, 'Moderate evidence': 66, 'Mixed evidence': 50, 'Limited evidence': 40, 'Weak evidence': 22, 'Unsupported': 12 };
     const avg = Math.round(claims.reduce((a, c) => a + (pts[c.tier] != null ? pts[c.tier] : 40), 0) / claims.length);
@@ -2141,14 +2186,13 @@ function heuristicScore(caption){
     const scoreLabel = avg >= 80 ? 'Strongly backed' : avg >= 63 ? 'Backed' : avg >= 38 ? 'Mixed evidence' : 'Weak';
     return { score: avg, scoreTone, scoreLabel, claims, sourceQuery: kb.sourceQuery };
   }
-  // Generic fallback: looks like a supplement but we don't have a specific
-  // profile — give a neutral "needs review" and point at the live literature.
-  if (!/supplement|capsule|gummies|gummy|vitamin|probiotic|powder|sachet|tablet|drops|tincture|softgel/.test(s)) return null;
+  // Generic fallback: looks like a supplement but no specific ingredient profile.
+  if (!/supplement|capsule|gummies|gummy|vitamin|probiotic|powder|sachet|tablet|drops|tincture|softgel|extract/.test(cap + ' ' + ingredientText)) return null;
   return {
     score: 40, scoreTone: 'amber', scoreLabel: 'Needs a closer look', generic: true,
-    sourceQuery: supplementQueryFromCaption(caption),
+    sourceQuery: supplementQueryFromCaption((product && product.product) || caption),
     claims: [{ claim: 'Marketed health benefits', tier: 'Limited evidence', tone: 'amber',
-      note: "We recognise this as a supplement but don't have a specific evidence profile for it yet — the sources link below shows the current literature to check it against." }]
+      note: "We recognise this as a supplement but don't have a specific evidence profile for its main ingredient yet — the sources link below shows the current literature to check it against." }]
   };
 }
 
@@ -2209,8 +2253,39 @@ function evidenceSummaryLive(est){
     '<span class="helpful">ⓘ Individual responses can vary — this reflects the general evidence, not a guarantee.</span>';
 }
 
-// Real post pulled in — show the genuine handle, caption and cover, plus an
-// early auto-estimate of the Claim Score (or a clear not-scored state).
+// Escape web-sourced text (from the Gemini product lookup) before injecting.
+function escHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// Real, web-grounded product summary card (company, product, contents, one-line
+// description, sources) — only shown when the Worker's Gemini lookup returns data.
+function productCardHtml(p){
+  if (!p || (!p.summary && !p.company && !p.product && !(p.ingredients || []).length)) return '';
+  const ings = (p.ingredients || []).slice(0, 10);
+  const mainWord = p.mainIngredient ? String(p.mainIngredient).toLowerCase().split(' ')[0] : '';
+  return '<div class="prod-card">' +
+    '<span class="section-label" style="margin:0;">📦 What this product is</span>' +
+    ((p.company || p.product)
+      ? '<div>' + (p.company ? '<span class="brand-label">' + escHtml(p.company) + '</span>' : '') +
+          (p.product ? '<div class="tagged-name">' + escHtml(p.product) + '</div>' : '') + '</div>'
+      : '') +
+    (p.summary ? '<span class="claim-note">' + escHtml(p.summary) + '</span>' : '') +
+    (ings.length
+      ? '<div class="prod-ings-wrap"><span class="value-stat-label">Contents</span><div class="prod-ings">' +
+          ings.map(i => '<span class="ing-chip' + (mainWord && i.toLowerCase().includes(mainWord) ? ' ing-main' : '') + '">' + escHtml(i) + '</span>').join('') +
+        '</div></div>'
+      : '') +
+    (p.mainIngredient ? '<span class="helpful">Scored against the main ingredient: <b>' + escHtml(p.mainIngredient) + '</b></span>' : '') +
+    ((p.sources || []).length
+      ? '<div class="source-row">' + p.sources.map(s => '<a class="link-out" href="' + encodeURI(s.uri) + '" target="_blank" rel="noopener">' + escHtml(s.title || 'Source') + ' →</a>').join('') + '</div>'
+      : '') +
+  '</div>';
+}
+
+// Real post pulled in — show the genuine handle, caption and cover, the
+// web-grounded product summary, and an early auto-estimate of the Claim Score.
 function renderLiveUnverified(live){
   const followers = live.followerCount ? formatCount(live.followerCount) + ' followers' : '';
   const posted = live.postDate ? 'Posted ' + formatPostDate(live.postDate) : '';
@@ -2220,7 +2295,7 @@ function renderLiveUnverified(live){
   const nameNoAt = (live.handle || '').replace(/[@\s]/g, '').toLowerCase();
   const showName = live.authorName && live.authorName.replace(/\s+/g, '').toLowerCase() !== nameNoAt;
 
-  const est = heuristicScore(live.caption);
+  const est = heuristicScore(live.caption, live.product);
 
   document.getElementById('postCard').innerHTML =
     '<div class="row-between" style="align-items:flex-start;">' +
@@ -2240,7 +2315,8 @@ function renderLiveUnverified(live){
       pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') +
     '</div>' +
     (live.thumbnail ? '<div class="post-photo"><img src="' + live.thumbnail + '" alt="post" onerror="this.remove()" /></div>' : '') +
-    '<span class="section-label" style="margin-top:2px;">Claim summary</span>' +
+    productCardHtml(live.product) +
+    '<span class="section-label" style="margin-top:2px;">What the creator claims</span>' +
     '<div class="quote-box">"' + (live.caption || '').replace(/^"|"$/g, '') + '"</div>';
 
   if (est){

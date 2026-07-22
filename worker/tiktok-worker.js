@@ -10,6 +10,13 @@
 // paste this file → Deploy. Copy the *.workers.dev URL and set WORKER_URL in
 // index.html. Test: <your-worker-url>/?url=https://www.tiktok.com/@bloom/video/7544092143711751437
 //
+// OPTIONAL — real product summary: add a Worker secret named GEMINI_API_KEY
+// (Cloudflare → your Worker → Settings → Variables and Secrets → Add → Secret).
+// Get a free key at https://aistudio.google.com/apikey. With it set, the Worker
+// uses Gemini + Google Search grounding to return the real product's company,
+// ingredients and a one-line summary (with source links). It NEVER invents
+// ingredients — unverifiable fields come back null. Without the key, it's skipped.
+//
 // Not affiliated with TikTok; reads only public page data for the pasted post.
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
@@ -40,8 +47,61 @@ async function oembedThumb(link) {
   }
 }
 
+// Real product summary via Gemini + Google Search grounding. Returns null if no
+// GEMINI_API_KEY is set or anything fails. Strictly instructed to use only
+// web-verified data and never invent ingredients (unknown fields => null).
+async function productSummary(caption, env) {
+  const key = env && env.GEMINI_API_KEY;
+  if (!key || !caption) return null;
+  const hint = caption.replace(/#\S+/g, ' ').replace(/https?:\/\/\S+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
+  if (hint.length < 3) return null;
+
+  const prompt =
+    'Identify the real supplement product described here: "' + hint + '". ' +
+    'Use Google Search to get accurate, real information — do NOT invent anything. ' +
+    'Respond with ONLY a JSON object (no markdown, no commentary) in this shape: ' +
+    '{"company": brand or null, "product": product name or null, "ingredients": [real listed ingredients], ' +
+    '"mainIngredient": the single dominant active ingredient or null, ' +
+    '"summary": one factual sentence on what it is, its form and its marketed purpose}. ' +
+    'If a field cannot be verified from real sources, set it to null (or [] for ingredients). Never guess ingredients.';
+
+  try {
+    const res = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], tools: [{ google_search: {} }] }),
+      }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const cand = (data.candidates || [])[0] || {};
+    const text = ((cand.content || {}).parts || []).map((p) => p.text || '').join('');
+    const jm = text.match(/\{[\s\S]*\}/);
+    if (!jm) return null;
+    let obj;
+    try { obj = JSON.parse(jm[0]); } catch (e) { return null; }
+    const chunks = ((cand.groundingMetadata || {}).groundingChunks) || [];
+    const sources = chunks
+      .map((c) => (c.web ? { title: c.web.title || '', uri: c.web.uri || '' } : null))
+      .filter((s) => s && s.uri)
+      .slice(0, 3);
+    return {
+      company: obj.company || null,
+      product: obj.product || null,
+      ingredients: Array.isArray(obj.ingredients) ? obj.ingredients.filter(Boolean).slice(0, 12) : [],
+      mainIngredient: obj.mainIngredient || null,
+      summary: obj.summary || null,
+      sources,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
     const link = new URL(request.url).searchParams.get('url');
@@ -66,7 +126,7 @@ export default {
       if (!thumbnail) thumbnail = await oembedThumb(link);
 
       // Note: heartCount (likes) is intentionally omitted.
-      return json({
+      const out = {
         platform: 'TikTok',
         handle: author.uniqueId ? '@' + author.uniqueId : '',
         authorName: author.nickname || '',
@@ -77,7 +137,9 @@ export default {
         followerCount: typeof stats.followerCount === 'number' ? stats.followerCount : null,
         postDate: item.createTime ? Number(item.createTime) : null,
         paidPartnership: item.isAd === true,
-      });
+      };
+      out.product = await productSummary(out.caption, env); // real web-grounded product data, or null
+      return json(out);
     } catch (e) {
       return json({ error: String(e && e.message || e) }, 500);
     }
