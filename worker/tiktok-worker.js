@@ -104,6 +104,23 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+    // Temporary diagnostic: /?debug=gemini reports why the product lookup fails.
+    // Returns the Gemini call status + response body (never the key itself).
+    if (new URL(request.url).searchParams.get('debug') === 'gemini') {
+      const key = env && env.GEMINI_API_KEY;
+      if (!key) return json({ keyPresent: false, note: 'GEMINI_API_KEY secret is not set on this Worker.' });
+      const r = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'Reply with JSON {"ok":true}' }] }], tools: [{ google_search: {} }] }),
+        }
+      );
+      const body = await r.text();
+      return json({ keyPresent: true, status: r.status, body: body.slice(0, 900) });
+    }
+
     const link = new URL(request.url).searchParams.get('url');
     if (!link || !/tiktok\.com/i.test(link)) {
       return json({ error: 'Pass a TikTok link as ?url=' }, 400);

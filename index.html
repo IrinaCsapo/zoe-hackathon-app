@@ -1951,11 +1951,11 @@ const EVIDENCE_KB = [
     match: ["creatine"],
     sourceQuery: "creatine monohydrate strength muscle cognition randomized controlled trial",
     claims: [
-      { match: ["strength", "power", "lift", "gym", "workout", "performance"], claim: "Improves strength & power", tier: "Strong evidence", tone: "teal", note: "One of the most replicated results in sports science — 500+ trials." },
-      { match: ["muscle", "lean", "gains", "build"], claim: "Builds lean muscle", tier: "Strong evidence", tone: "teal", note: "Reliably supports muscle gain alongside resistance training." },
-      { match: ["focus", "brain", "cognit", "memory", "mental", "clarity"], claim: "Sharpens focus & memory", tier: "Limited evidence", tone: "amber", note: "Cognitive effects show mainly in sleep-deprived or older adults, not general use." },
-      { match: ["energy"], claim: "Boosts everyday energy", tier: "Weak evidence", tone: "red", note: "No literature ties creatine to general energy; its mechanism is short anaerobic power." },
-      { match: ["recovery"], claim: "Speeds muscle recovery", tier: "Mixed evidence", tone: "amber", note: "Some recovery markers improve, but the evidence is less consistent than for strength." }
+      { match: ["strength", "power", "lift", "gym", "workout", "performance"], claim: "Boost strength", tier: "Strong evidence", tone: "teal", note: "One of the most replicated findings in sports nutrition." },
+      { match: ["muscle", "lean", "gains", "build"], claim: "Build lean muscle", tier: "Strong evidence", tone: "teal", note: "Consistent gains with resistance training, backed by multiple meta-analyses." },
+      { match: ["focus", "brain", "cognit", "memory", "mental", "clarity"], claim: "Support cognitive health", tier: "Limited evidence", tone: "amber", note: "Modest effects mostly shown in sleep-deprived or older adults, not general use." },
+      { match: ["recovery"], claim: "Aid muscle recovery", tier: "Mixed evidence", tone: "amber", note: "Some markers improve, but meta-analyses on recovery specifically are inconsistent." },
+      { match: ["energy"], claim: "Boost energy", tier: "Unsupported", tone: "red", note: "No literature ties creatine to general energy; its mechanism is short anaerobic power only." }
     ]
   },
   {
@@ -2177,10 +2177,10 @@ function heuristicScore(caption, product){
           || EVIDENCE_KB.find(k => k.match.some(m => cap.includes(m)));
   if (kb){
     const claimText = ingredientText + ' ' + cap;   // the marketed benefits (from summary + caption)
+    const pts = { 'Strong evidence': 88, 'Moderate evidence': 66, 'Mixed evidence': 50, 'Limited evidence': 40, 'Weak evidence': 22, 'Unsupported': 12 };
     let claims = kb.claims.filter(c => c.match.some(m => claimText.includes(m)));
     if (!claims.length) claims = kb.claims.slice(0, 2); // recognised the ingredient but no specific claim words
-    claims = claims.slice(0, 4);
-    const pts = { 'Strong evidence': 88, 'Moderate evidence': 66, 'Mixed evidence': 50, 'Limited evidence': 40, 'Weak evidence': 22, 'Unsupported': 12 };
+    claims = claims.slice().sort((a, b) => (pts[a.tier] || 40) - (pts[b.tier] || 40)).slice(0, 5); // worst → best, up to 5
     const avg = Math.round(claims.reduce((a, c) => a + (pts[c.tier] != null ? pts[c.tier] : 40), 0) / claims.length);
     const scoreTone = avg >= 63 ? 'teal' : avg >= 38 ? 'amber' : 'red';
     const scoreLabel = avg >= 80 ? 'Strongly backed' : avg >= 63 ? 'Backed' : avg >= 38 ? 'Mixed evidence' : 'Weak';
@@ -2265,12 +2265,13 @@ function productCardHtml(p){
   if (!p || (!p.summary && !p.company && !p.product && !(p.ingredients || []).length)) return '';
   const ings = (p.ingredients || []).slice(0, 10);
   const mainWord = p.mainIngredient ? String(p.mainIngredient).toLowerCase().split(' ')[0] : '';
-  return '<div class="prod-card">' +
-    '<span class="section-label" style="margin:0;">📦 What this product is</span>' +
-    ((p.company || p.product)
-      ? '<div>' + (p.company ? '<span class="brand-label">' + escHtml(p.company) + '</span>' : '') +
-          (p.product ? '<div class="tagged-name">' + escHtml(p.product) + '</div>' : '') + '</div>'
-      : '') +
+  return '<div class="tagged-product">' +
+      '<div class="tagged-thumb" style="font-size:22px;">💊</div>' +
+      '<div style="min-width:0;">' +
+        (p.company ? '<span class="brand-label">' + escHtml(p.company) + '</span>' : '') +
+        (p.product ? '<div class="tagged-name">' + escHtml(p.product) + '</div>' : '') +
+      '</div>' +
+    '</div>' +
     (p.summary ? '<span class="claim-note">' + escHtml(p.summary) + '</span>' : '') +
     (ings.length
       ? '<div class="prod-ings-wrap"><span class="value-stat-label">Contents</span><div class="prod-ings">' +
@@ -2280,8 +2281,7 @@ function productCardHtml(p){
     (p.mainIngredient ? '<span class="helpful">Scored against the main ingredient: <b>' + escHtml(p.mainIngredient) + '</b></span>' : '') +
     ((p.sources || []).length
       ? '<div class="source-row">' + p.sources.map(s => '<a class="link-out" href="' + encodeURI(s.uri) + '" target="_blank" rel="noopener">' + escHtml(s.title || 'Source') + ' →</a>').join('') + '</div>'
-      : '') +
-  '</div>';
+      : '');
 }
 
 // Real post pulled in — show the genuine handle, caption and cover, the
