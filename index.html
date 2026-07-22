@@ -1924,13 +1924,17 @@ function renderLiveUnverified(live){
   const followers = live.followerCount ? formatCount(live.followerCount) + ' followers' : '';
   const posted = live.postDate ? 'Posted ' + formatPostDate(live.postDate) : '';
   const metaLine = [followers, posted].filter(Boolean).join('  ·  ');
+  // Only show the display name if it's actually different from the handle
+  // (many creators' display name == handle, which reads as a duplicate).
+  const nameNoAt = (live.handle || '').replace(/[@\s]/g, '').toLowerCase();
+  const showName = live.authorName && live.authorName.replace(/\s+/g, '').toLowerCase() !== nameNoAt;
 
   document.getElementById('postCard').innerHTML =
     '<div class="row-between" style="align-items:flex-start;">' +
       '<div style="display:flex;gap:11px;min-width:0;">' +
         (live.avatar ? '<img class="live-avatar" src="' + live.avatar + '" alt="" onerror="this.remove()" />' : '') +
         '<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">' +
-          '<span class="review-name">' + live.handle + (live.authorName ? ' · ' + live.authorName : '') + '</span>' +
+          '<span class="review-name">' + live.handle + (showName ? ' · ' + live.authorName : '') + '</span>' +
           '<span class="helpful">' + (live.bio ? live.bio : ('Pulled live from ' + live.platform)) + '</span>' +
           (metaLine ? '<span class="helpful">' + metaLine + '</span>' : '') +
         '</div>' +
