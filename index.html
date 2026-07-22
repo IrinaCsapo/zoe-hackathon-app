@@ -1997,21 +1997,157 @@ const EVIDENCE_KB = [
       { match: ["detox", "toxin"], claim: "Detoxes the body", tier: "Unsupported", tone: "red", note: "No evidence a greens powder 'detoxes' beyond normal liver/kidney function." },
       { match: ["nutrient", "vitamin", "veg", "daily"], claim: "Replaces your daily veg", tier: "Limited evidence", tone: "amber", note: "Adds some nutrients, but doesn't match whole vegetables (fibre, volume)." }
     ]
+  },
+  {
+    match: ["omega", "fish oil", "epa", "dha"],
+    sourceQuery: "omega-3 fish oil EPA DHA cardiovascular brain randomized controlled trial",
+    claims: [
+      { match: ["heart", "cardio", "cholesterol", "triglyceride", "blood pressure"], claim: "Supports heart health", tier: "Strong evidence", tone: "teal", note: "Strong evidence that EPA/DHA lower triglycerides and support cardiovascular health." },
+      { match: ["brain", "mood", "focus", "mental", "cognit", "depress"], claim: "Supports brain & mood", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for mood and cognition, especially at higher EPA doses." },
+      { match: ["joint", "inflamm", "arthritis"], claim: "Eases joint inflammation", tier: "Limited evidence", tone: "amber", note: "Some evidence for inflammatory joint conditions; less clear for general aches." },
+      { match: ["eye", "vision", "dry eye"], claim: "Supports eye health", tier: "Limited evidence", tone: "amber", note: "Mixed evidence — may help dry eye, not broader vision claims." },
+      { match: ["skin", "glow", "hair"], claim: "Improves skin & hair", tier: "Limited evidence", tone: "amber", note: "Limited evidence; may modestly support the skin barrier." }
+    ]
+  },
+  {
+    match: ["vitamin d", "vit d", "vitamin d3", "d3"],
+    sourceQuery: "vitamin D deficiency bone immunity randomized controlled trial",
+    claims: [
+      { match: ["bone", "deficien", "winter", "muscle"], claim: "Supports bones & corrects deficiency", tier: "Strong evidence", tone: "teal", note: "Strong evidence for bone health and correcting deficiency (common in winter)." },
+      { match: ["immun", "cold", "flu", "sick"], claim: "Boosts immunity", tier: "Limited evidence", tone: "amber", note: "May modestly cut respiratory infections, mainly in people who are deficient." },
+      { match: ["mood", "energy", "depress", "tired"], claim: "Lifts mood & energy", tier: "Limited evidence", tone: "amber", note: "Some evidence in deficiency; general mood-boost claims are weaker." }
+    ]
+  },
+  {
+    match: ["vitamin c", "vit c", "ascorbic"],
+    sourceQuery: "vitamin C common cold immunity skin randomized controlled trial",
+    claims: [
+      { match: ["cold", "flu", "sick", "prevent"], claim: "Prevents colds", tier: "Weak evidence", tone: "red", note: "Doesn't prevent colds in most people; may slightly shorten their duration." },
+      { match: ["immun", "defence"], claim: "Supports immunity", tier: "Limited evidence", tone: "amber", note: "Supports normal immune function, but megadoses add no extra benefit." },
+      { match: ["skin", "glow", "collagen", "bright"], claim: "Brightens skin", tier: "Limited evidence", tone: "amber", note: "A cofactor for collagen; topical vitamin C has more skin evidence than oral." }
+    ]
+  },
+  {
+    match: ["vitamin b12", "b12", "b-12", "cobalamin"],
+    sourceQuery: "vitamin B12 deficiency energy fatigue randomized controlled trial",
+    claims: [
+      { match: ["deficien", "vegan", "vegetarian"], claim: "Corrects B12 deficiency", tier: "Strong evidence", tone: "teal", note: "Strong evidence for treating deficiency, which is common on plant-based diets." },
+      { match: ["energy", "tired", "fatigue", "boost"], claim: "Boosts energy", tier: "Mixed evidence", tone: "amber", note: "Only restores energy if you're actually deficient — not an energy booster otherwise." }
+    ]
+  },
+  {
+    match: ["probiotic", "gut health", "microbiome", "good bacteria"],
+    sourceQuery: "probiotics gut health IBS immunity randomized controlled trial",
+    claims: [
+      { match: ["gut", "digest", "ibs", "bloat", "bowel"], claim: "Improves gut & digestion", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for IBS symptoms and antibiotic-related diarrhoea — strain-specific." },
+      { match: ["immun"], claim: "Boosts immunity", tier: "Limited evidence", tone: "amber", note: "Some evidence, but it depends heavily on the specific strain." },
+      { match: ["skin", "acne", "glow"], claim: "Clears skin", tier: "Weak evidence", tone: "red", note: "Early, limited evidence — not a reliable skin treatment." }
+    ]
+  },
+  {
+    match: ["biotin", "vitamin b7"],
+    sourceQuery: "biotin hair growth nails deficiency randomized controlled trial",
+    claims: [
+      { match: ["hair", "nail", "growth", "thick"], claim: "Grows hair & nails", tier: "Weak evidence", tone: "red", note: "Only helps if you're biotin-deficient (rare) — no benefit for most people." }
+    ]
+  },
+  {
+    match: ["zinc"],
+    sourceQuery: "zinc common cold immunity acne randomized controlled trial",
+    claims: [
+      { match: ["cold", "flu", "sick"], claim: "Shortens colds", tier: "Moderate evidence", tone: "teal", note: "Zinc lozenges can modestly shorten a cold if started early." },
+      { match: ["acne", "skin", "spot"], claim: "Clears acne", tier: "Limited evidence", tone: "amber", note: "Some evidence oral zinc helps acne, weaker than prescription options." },
+      { match: ["immun"], claim: "Supports immunity", tier: "Limited evidence", tone: "amber", note: "Important for immune function, but mainly matters if you're deficient." }
+    ]
+  },
+  {
+    match: ["iron", "ferritin"],
+    sourceQuery: "iron deficiency anaemia fatigue randomized controlled trial",
+    claims: [
+      { match: ["anaemia", "anemia", "deficien"], claim: "Treats anaemia", tier: "Strong evidence", tone: "teal", note: "Strong evidence for treating iron-deficiency anaemia." },
+      { match: ["energy", "tired", "fatigue"], claim: "Restores energy", tier: "Moderate evidence", tone: "teal", note: "Helps if you're iron-deficient; no energy benefit at normal levels (and excess is harmful)." }
+    ]
+  },
+  {
+    match: ["turmeric", "curcumin"],
+    sourceQuery: "curcumin turmeric inflammation joint pain randomized controlled trial",
+    claims: [
+      { match: ["joint", "inflamm", "pain", "arthritis"], claim: "Reduces inflammation & joint pain", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for osteoarthritis pain; poorly absorbed without black pepper." },
+      { match: ["gut", "digest", "bloat"], claim: "Soothes digestion", tier: "Limited evidence", tone: "amber", note: "Limited evidence for digestive benefits." }
+    ]
+  },
+  {
+    match: ["apple cider vinegar", "acv"],
+    sourceQuery: "apple cider vinegar weight loss blood sugar randomized controlled trial",
+    claims: [
+      { match: ["weight", "fat", "slim", "belly"], claim: "Causes weight loss", tier: "Weak evidence", tone: "red", note: "Tiny effects at best in small studies — not a weight-loss solution." },
+      { match: ["blood sugar", "glucose", "insulin"], claim: "Balances blood sugar", tier: "Limited evidence", tone: "amber", note: "May slightly blunt post-meal blood sugar; modest and short-term." }
+    ]
+  },
+  {
+    match: ["melatonin"],
+    sourceQuery: "melatonin sleep insomnia jet lag randomized controlled trial",
+    claims: [
+      { match: ["sleep", "insomnia", "jet lag", "rest"], claim: "Helps you fall asleep", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for falling asleep faster and for jet lag; best used short-term." }
+    ]
+  },
+  {
+    match: ["multivitamin", "multi-vitamin", "daily multi"],
+    sourceQuery: "multivitamin general health mortality randomized controlled trial",
+    claims: [
+      { match: ["health", "energy", "wellness", "immun", "vitality"], claim: "Improves overall health", tier: "Weak evidence", tone: "red", note: "Large trials show little benefit in well-nourished people — it fills gaps at best." }
+    ]
+  },
+  {
+    match: ["whey", "protein powder", "protein shake"],
+    sourceQuery: "whey protein muscle strength weight loss randomized controlled trial",
+    claims: [
+      { match: ["muscle", "strength", "gains", "build", "gym"], claim: "Builds muscle", tier: "Strong evidence", tone: "teal", note: "Strong evidence it supports muscle growth alongside resistance training." },
+      { match: ["weight", "fat", "slim", "lean"], claim: "Helps weight loss", tier: "Limited evidence", tone: "amber", note: "Can help via fullness and preserving muscle, but it's not magic." }
+    ]
+  },
+  {
+    match: ["elderberry", "sambucus"],
+    sourceQuery: "elderberry cold flu immune randomized controlled trial",
+    claims: [
+      { match: ["cold", "flu", "sick", "immun"], claim: "Fights colds & flu", tier: "Limited evidence", tone: "amber", note: "Small trials suggest shorter cold/flu symptoms, but the evidence is thin." }
+    ]
   }
 ];
+
+// Build a rough OpenAlex query from a messy caption for supplements we don't
+// have a specific profile for — so the sources link still points at real literature.
+function supplementQueryFromCaption(caption){
+  const stop = new Set(['this','that','with','your','have','from','they','them','then','than','best','more','even','also','into','just','like','really','found','combined','rich','complete','love','know','think','been','only','some','other','when','what','which','will','would','could','about','after','before','their','there','these','those','same','more','very','much','make','made','need','want','because','though','still']);
+  const words = (caption || '').toLowerCase()
+    .replace(/[#@]\S+/g, ' ').replace(/https?:\/\/\S+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ').split(/\s+/)
+    .filter(w => w.length > 3 && !stop.has(w));
+  return (words.slice(0, 6).join(' ') || 'dietary supplement') + ' clinical trial';
+}
 
 function heuristicScore(caption){
   const s = (caption || '').toLowerCase();
   const kb = EVIDENCE_KB.find(k => k.match.some(m => s.includes(m)));
-  if (!kb) return null;
-  let claims = kb.claims.filter(c => c.match.some(m => s.includes(m)));
-  if (!claims.length) claims = kb.claims.slice(0, 2); // recognised the product but no specific claim words
-  claims = claims.slice(0, 4);
-  const pts = { 'Strong evidence': 88, 'Moderate evidence': 66, 'Mixed evidence': 50, 'Limited evidence': 40, 'Weak evidence': 22, 'Unsupported': 12 };
-  const avg = Math.round(claims.reduce((a, c) => a + (pts[c.tier] != null ? pts[c.tier] : 40), 0) / claims.length);
-  const scoreTone = avg >= 63 ? 'teal' : avg >= 38 ? 'amber' : 'red';
-  const scoreLabel = avg >= 80 ? 'Strongly backed' : avg >= 63 ? 'Backed' : avg >= 38 ? 'Mixed evidence' : 'Weak';
-  return { score: avg, scoreTone, scoreLabel, claims, sourceQuery: kb.sourceQuery };
+  if (kb){
+    let claims = kb.claims.filter(c => c.match.some(m => s.includes(m)));
+    if (!claims.length) claims = kb.claims.slice(0, 2); // recognised the product but no specific claim words
+    claims = claims.slice(0, 4);
+    const pts = { 'Strong evidence': 88, 'Moderate evidence': 66, 'Mixed evidence': 50, 'Limited evidence': 40, 'Weak evidence': 22, 'Unsupported': 12 };
+    const avg = Math.round(claims.reduce((a, c) => a + (pts[c.tier] != null ? pts[c.tier] : 40), 0) / claims.length);
+    const scoreTone = avg >= 63 ? 'teal' : avg >= 38 ? 'amber' : 'red';
+    const scoreLabel = avg >= 80 ? 'Strongly backed' : avg >= 63 ? 'Backed' : avg >= 38 ? 'Mixed evidence' : 'Weak';
+    return { score: avg, scoreTone, scoreLabel, claims, sourceQuery: kb.sourceQuery };
+  }
+  // Generic fallback: looks like a supplement but we don't have a specific
+  // profile — give a neutral "needs review" and point at the live literature.
+  if (!/supplement|capsule|gummies|gummy|vitamin|probiotic|powder|sachet|tablet|drops|tincture|softgel/.test(s)) return null;
+  return {
+    score: 40, scoreTone: 'amber', scoreLabel: 'Needs a closer look', generic: true,
+    sourceQuery: supplementQueryFromCaption(caption),
+    claims: [{ claim: 'Marketed health benefits', tier: 'Limited evidence', tone: 'amber',
+      note: "We recognise this as a supplement but don't have a specific evidence profile for it yet — the sources link below shows the current literature to check it against." }]
+  };
 }
 
 // Illustrative (made-up) reviews for the live path, tagged by sentiment so the
