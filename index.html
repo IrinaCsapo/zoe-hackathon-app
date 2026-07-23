@@ -119,11 +119,15 @@
   .upload-icon{font-size:22px;}
   .upload-hint{font-size:11.5px;color:var(--text-muted);}
   .upload-title{font-size:13px;font-weight:600;}
-  .upload-preview{display:none;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;}
+  .upload-preview{display:none;position:relative;gap:11px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;}
   .upload-preview.active{display:flex;}
-  .upload-preview img{width:52px;height:52px;object-fit:cover;border-radius:10px;flex-shrink:0;}
-  .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .upload-preview img{width:60px;height:60px;object-fit:cover;border-radius:10px;flex-shrink:0;background:var(--surface-2,#f3efe9);}
+  .upload-preview-meta{display:flex;flex-direction:column;gap:2px;min-width:0;padding-right:26px;}
   .upload-preview-name{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .upload-remove{position:absolute;top:8px;right:8px;width:22px;height:22px;border:none;border-radius:50%;
+    background:var(--ink);color:#fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;padding:0;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .upload-remove:hover{opacity:.85;}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;
     padding:9px 15px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);
@@ -392,6 +396,7 @@
           <span class="upload-preview-name" id="uploadPreviewName"></span>
           <span class="helpful" id="ocrStatus">Ready to analyse</span>
         </div>
+        <button type="button" class="upload-remove" id="uploadRemove" onclick="clearScreenshot()" aria-label="Remove image" title="Remove image">✕</button>
       </div>
       <button class="btn-primary" id="analyseBtn" onclick="analyseImage()" style="display:none;">Analyse product</button>
 
@@ -1456,6 +1461,7 @@ function handleScreenshot(input){
   document.getElementById('uploadPreviewImg').src = url;
   document.getElementById('uploadPreviewName').textContent = file.name;
   document.getElementById('uploadPreview').classList.add('active');
+  document.getElementById('uploadDrop').style.display = 'none';   // swap the drop box for the preview
   document.getElementById('ocrStatus').textContent = 'Ready to analyse';
 
   // Reset any previous run — picking a new file means starting over.
@@ -1465,6 +1471,21 @@ function handleScreenshot(input){
   analyseBtn.textContent = 'Analyse product';
 
   renderScreenshotChips();
+}
+
+// Remove the uploaded screenshot: clear the preview and bring the upload box back.
+function clearScreenshot(){
+  const input = document.getElementById('screenshotInput');
+  if (input) input.value = '';                        // lets the same file be re-picked
+  if (lastUploadedImageUrl){ URL.revokeObjectURL(lastUploadedImageUrl); lastUploadedImageUrl = ''; }
+  document.getElementById('uploadPreview').classList.remove('active');
+  document.getElementById('uploadPreviewImg').removeAttribute('src');
+  document.getElementById('uploadDrop').style.display = '';        // reveal the drop box again
+  const analyseBtn = document.getElementById('analyseBtn');
+  analyseBtn.style.display = 'none';
+  analyseBtn.disabled = false;
+  analyseBtn.textContent = 'Analyse product';
+  document.getElementById('ocrStatus').textContent = 'Ready to analyse';
 }
 
 function fileToBase64(file){
@@ -2323,15 +2344,16 @@ function renderLiveUnverified(live){
   const est = heuristicScore(live.caption, live.product);
   const screenshot = live.source === 'screenshot';
 
+  const identified = live.product && (live.product.product || live.product.company);
   const header = screenshot
     ? '<div class="row-between" style="align-items:flex-start;">' +
         '<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">' +
-          '<span class="review-name">From your screenshot</span>' +
-          '<span class="helpful">Product read from the image you uploaded</span>' +
+          '<span class="review-name">' + (identified ? 'Identified from your image' : 'From your screenshot') + '</span>' +
+          '<span class="helpful">' + (identified ? 'We read the product below straight off your uploaded image.' : 'Product read from the image you uploaded') + '</span>' +
         '</div>' +
         '<div class="score-bubble ' + (est ? 'sb-' + est.scoreTone : 'sb-gray') + '">' + (est ? est.score : '—') + '</div>' +
       '</div>' +
-      '<div class="tag-row">' + pill('From your screenshot', 'gray') + pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') + '</div>'
+      '<div class="tag-row">' + pill('From your image', 'gray') + pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') + '</div>'
     : '<div class="row-between" style="align-items:flex-start;">' +
         '<div style="display:flex;gap:11px;min-width:0;">' +
           (live.avatar ? '<img class="live-avatar" src="' + live.avatar + '" alt="" onerror="this.remove()" />' : '') +
