@@ -130,10 +130,21 @@
   .upload-remove:hover{opacity:.85;}
   .chip-row{display:flex;flex-wrap:wrap;gap:8px;}
   .chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--border-strong);background:var(--surface);border-radius:999px;
-    padding:9px 15px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text);
+    padding:5px 13px 5px 5px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--text);
     transition:all .15s ease;font-family:var(--font-body);}
   .chip svg{flex-shrink:0;}
   .chip:hover,.chip:active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  /* Small circular brand/creator avatar inside a chip: real image with an
+     initials fallback (the <img> removes itself on error, revealing initials). */
+  .chip-avatar{position:relative;width:22px;height:22px;border-radius:50%;flex-shrink:0;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;}
+  .chip-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+  .chip-plat{display:inline-flex;opacity:.5;}
+  /* Warm, friendly disclaimer note (e.g. the made-up trending creators). */
+  .demo-note{display:flex;gap:8px;align-items:flex-start;background:#FBF2EC;border:1px solid #F0DDCF;
+    border-radius:12px;padding:9px 12px;font-size:11px;line-height:1.45;color:var(--text-secondary);margin-top:9px;}
+  .demo-note .demo-note-ico{flex-shrink:0;font-size:12px;line-height:1.35;}
+  .demo-note b{color:var(--coral);font-weight:700;}
   .btn-primary{
     background:var(--ink);color:#fff;border:none;border-radius:16px;
     padding:15px;font-size:14.5px;font-weight:600;cursor:pointer;width:100%;
@@ -150,8 +161,8 @@
   .btn-secondary:hover{border-color:var(--text-muted);}
   .btn-secondary:active{transform:scale(0.985);}
   .section-label{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text);margin-top:4px;letter-spacing:-0.01em;}
-  /* Large section headline, matching the Trending title, for top-level home rails. */
-  .section-lg{font-size:26px;letter-spacing:-0.015em;line-height:1.1;}
+  /* Section headline for top-level home rails, matching the Trending title. */
+  .section-lg{font-size:19px;letter-spacing:-0.012em;line-height:1.15;}
   .example-card{
     background:var(--surface);border:1px solid var(--border);border-radius:18px;
     padding:13px;display:flex;gap:11px;align-items:center;cursor:pointer;text-align:left;
@@ -169,7 +180,7 @@
   .example-caption{font-size:11.5px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .trend-header{display:flex;flex-direction:column;gap:3px;margin-top:6px;}
   .trend-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--coral);}
-  .trend-title{font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.015em;margin:0;line-height:1.05;color:var(--text);}
+  .trend-title{font-family:var(--font-display);font-size:19px;font-weight:600;letter-spacing:-0.012em;margin:0;line-height:1.15;color:var(--text);}
   .trend-sub{font-size:13px;color:var(--text-secondary);line-height:1.4;}
   .trend-card{background:var(--surface);border:1px solid var(--border);border-radius:22px;padding:18px;
     display:flex;flex-direction:column;gap:13px;box-shadow:0 2px 10px rgba(40,30,80,0.05);cursor:pointer;text-align:left;
@@ -381,6 +392,10 @@
       <button class="btn-primary" onclick="checkPastedLink()">Check it</button>
       <span class="section-label" style="margin-top:6px;">Trending influencers</span>
       <div class="chip-row" id="sampleLinkChips"></div>
+      <div class="demo-note">
+        <span class="demo-note-ico">✨</span>
+        <span>A gentle note: these creators are made up, not real accounts. They're here to show how Vera would work on real trending posts.</span>
+      </div>
     </div>
 
     <div class="tab-panel" id="tab-screenshot">
@@ -1951,15 +1966,31 @@ function platformIcon(platform){
   return '';
 }
 
+// Small circular avatar for a chip: the creator's real post image where we have
+// one, with a coloured initials circle behind it as the fallback.
+const CHIP_AVATAR_COLORS = [['#CECBF6', '#26215C'], ['#B5D4F4', '#042C53'], ['#F5C4B3', '#4A1B0C'], ['#C0DD97', '#173404'], ['#FAC775', '#412402']];
+
+function chipInitials(handle){
+  const h = (handle || '').replace(/^@/, '').replace(/[^a-z0-9]/gi, '');
+  return (h.slice(0, 2) || '?').toUpperCase();
+}
+
 function renderSampleLinks(){
   const el = document.getElementById('sampleLinkChips');
   if (!el) return;
-  el.innerHTML = SAMPLE_LINKS.map(s => {
+  el.innerHTML = SAMPLE_LINKS.map((s, i) => {
     const p = PRODUCTS[s.id];
     const platform = p ? p.post.platform : '';
     const handle = p ? p.post.handle : s.label;
+    const img = p && p.post && p.post.image;
+    const col = CHIP_AVATAR_COLORS[i % CHIP_AVATAR_COLORS.length];
+    const avatar = '<span class="chip-avatar" style="background:' + col[0] + ';color:' + col[1] + ';">' +
+      chipInitials(handle) +
+      (img ? '<img src="' + img + '" alt="" onerror="this.remove()" />' : '') +
+    '</span>';
     return '<button class="chip" onclick="openCheck(\'' + s.id + '\')">' +
-      platformIcon(platform) + '<span>' + handle + '</span>' +
+      avatar + '<span>' + handle + '</span>' +
+      (platform ? '<span class="chip-plat">' + platformIcon(platform) + '</span>' : '') +
     '</button>';
   }).join('');
 }
@@ -2142,7 +2173,7 @@ const EVIDENCE_KB = [
     match: ["probiotic", "gut health", "microbiome", "good bacteria"],
     sourceQuery: "probiotics gut health IBS immunity randomized controlled trial",
     claims: [
-      { match: ["gut", "digest", "ibs", "bloat", "bowel"], claim: "Improves gut & digestion", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for easing IBS symptoms and supporting gut recovery after antibiotics — strain-specific." },
+      { match: ["gut", "digest", "ibs", "bloat", "bowel"], claim: "Improves gut & digestion", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for easing IBS symptoms and supporting gut recovery after antibiotics, though the effect is strain specific." },
       { match: ["immun"], claim: "Boosts immunity", tier: "Limited evidence", tone: "amber", note: "Some evidence, but it depends heavily on the specific strain." },
       { match: ["skin", "acne", "glow"], claim: "Clears skin", tier: "Weak evidence", tone: "red", note: "Early, limited evidence — not a reliable skin treatment." }
     ]
