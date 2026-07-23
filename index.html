@@ -411,7 +411,6 @@
       </div>
       <button class="btn-primary" id="brandSearchBtn" onclick="brandSearch()">Check it</button>
       <span class="upload-hint" style="text-align:center;">We'll identify the product and check its claims against the evidence</span>
-      <span class="section-label" style="margin-top:6px;">Also in public databases</span>
       <div class="list-card" id="brandResults"></div>
       <div id="dsldResults"></div>
       <div id="offResults"></div>
@@ -436,7 +435,7 @@
     <div class="nav">
       <button class="icon-btn" onclick="goBack()" aria-label="Back">←</button>
       <span class="title">Check a product</span>
-      <button class="icon-btn" aria-label="Share">↗</button>
+      <span class="icon-btn" aria-hidden="true" style="visibility:hidden;">←</span>
     </div>
 
     <div class="card" id="postCard"></div>
@@ -984,6 +983,7 @@ let screenStack = ["screen-home"];
 let currentIsUnverified = false;
 let lastUploadedImageUrl = null;
 let lastUnverifiedQuery = "";
+let lastLiveSourceQuery = "";   // OpenAlex query for the current live/unverified result
 
 function pill(text, tone){ return '<span class="pill pill-' + tone + '">' + text + '</span>'; }
 
@@ -1781,8 +1781,9 @@ function renderUnverifiedCheck(fullText, imageUrl){
 
   renderHigherScored('__unverified__');
 
+  lastLiveSourceQuery = supplementQueryFromCaption(lastUnverifiedQuery || fullText || '');
   const cta = document.getElementById('checkCta');
-  if (cta) cta.textContent = 'Search real databases for this →';
+  if (cta) cta.textContent = 'See the research on OpenAlex →';
 }
 
 function openUnverifiedCheck(fullText, imageUrl){
@@ -1796,20 +1797,22 @@ function openUnverifiedCheck(fullText, imageUrl){
 
 function handleCheckCta(){
   if (currentIsUnverified){
-    searchRealDatabasesForUnverified();
+    openOpenAlexForResult();
     return;
   }
   openProductFromCheck();
 }
 
-function searchRealDatabasesForUnverified(){
-  screenStack = ['screen-home'];
-  show('screen-home');
-  showInputTab('brand');
-  const brandInput = document.getElementById('brandInput');
-  if (brandInput) brandInput.value = lastUnverifiedQuery;
-  filterBrands();
-  showToast('Searching NIH DSLD and Open Food Facts…');
+// Open the OpenAlex research results for whatever this result page is about —
+// the evidence sourceQuery when we recognised the ingredient, otherwise a
+// best-effort query from the product name / search term.
+function openOpenAlexForResult(){
+  const query = lastLiveSourceQuery || lastUnverifiedQuery;
+  if (!query){
+    showToast('No research query for this one yet');
+    return;
+  }
+  window.open(openAlexSearchUrl(query), '_blank', 'noopener');
 }
 
 function reviewHtml(r){
@@ -2139,7 +2142,7 @@ const EVIDENCE_KB = [
     match: ["probiotic", "gut health", "microbiome", "good bacteria"],
     sourceQuery: "probiotics gut health IBS immunity randomized controlled trial",
     claims: [
-      { match: ["gut", "digest", "ibs", "bloat", "bowel"], claim: "Improves gut & digestion", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for IBS symptoms and antibiotic-related diarrhoea — strain-specific." },
+      { match: ["gut", "digest", "ibs", "bloat", "bowel"], claim: "Improves gut & digestion", tier: "Moderate evidence", tone: "teal", note: "Moderate evidence for easing IBS symptoms and supporting gut recovery after antibiotics — strain-specific." },
       { match: ["immun"], claim: "Boosts immunity", tier: "Limited evidence", tone: "amber", note: "Some evidence, but it depends heavily on the specific strain." },
       { match: ["skin", "acne", "glow"], claim: "Clears skin", tier: "Weak evidence", tone: "red", note: "Early, limited evidence — not a reliable skin treatment." }
     ]
@@ -2473,8 +2476,14 @@ function renderLiveUnverified(live){
   renderHigherScored('__unverified__');
   enableHScroll();                                   // bind wheel/drag on the new carousel
 
+  // The bottom CTA opens the OpenAlex research results for this exact product —
+  // the evidence query when we recognised the ingredient, else a best-effort
+  // query from the product name or the term the user searched.
+  lastLiveSourceQuery = (est && est.sourceQuery)
+    || supplementQueryFromCaption((live.product && live.product.product) || live.query || live.caption || '');
+
   const cta = document.getElementById('checkCta');
-  if (cta) cta.textContent = 'Search real databases for this →';
+  if (cta) cta.textContent = 'See the research on OpenAlex →';
 }
 
 async function checkPastedLink(){
