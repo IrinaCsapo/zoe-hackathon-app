@@ -406,8 +406,12 @@
 
     <div class="tab-panel" id="tab-brand">
       <div class="search-row">
-        <input type="text" id="brandInput" placeholder="Search by brand or product name…" oninput="filterBrands()" />
+        <input type="text" id="brandInput" placeholder="Search any brand or supplement…"
+          oninput="filterBrands()" onkeydown="if(event.key==='Enter'){brandSearch();}" />
       </div>
+      <button class="btn-primary" id="brandSearchBtn" onclick="brandSearch()">Check it</button>
+      <span class="upload-hint" style="text-align:center;">We'll identify the product and check its claims against the evidence</span>
+      <span class="section-label" style="margin-top:6px;">Also in public databases</span>
       <div class="list-card" id="brandResults"></div>
       <div id="dsldResults"></div>
       <div id="offResults"></div>
@@ -1605,6 +1609,49 @@ function filterBrands(){
   }).join('');
 }
 
+// Smart brand/product search: run the typed name through the SAME Gemini identify
+// pipeline (text-only — no image) used for screenshots and TikTok covers, then
+// show the full Vera results page (product card + Claim Score + claims + sources).
+// This is far more comprehensive than the DSLD/Open Food Facts lookups, which
+// stay below as supporting "also in public databases" hits.
+async function brandSearch(){
+  const q = document.getElementById('brandInput').value.trim();
+  if (!q){
+    showToast('Type a brand or supplement to check');
+    return;
+  }
+  if (!WORKER_URL){
+    showToast('Search is offline right now');
+    return;
+  }
+
+  const btn = document.getElementById('brandSearchBtn');
+  const label = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Searching…';
+  showToast('Identifying the product…');
+
+  try {
+    const res = await fetchWithTimeout(WORKER_URL, 25000, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ caption: q })
+    });
+    const d = res.ok ? await res.json() : {};
+    const product = d && d.product;
+    if (product && (product.company || product.product || product.mainIngredient || (product.ingredients || []).length)){
+      openLiveCheck({ source: 'brand', platform: 'your search', caption: '', query: q, product: product });
+    } else {
+      showToast("Couldn't identify that — try the full product name");
+    }
+  } catch (e) {
+    showToast('Search timed out — try again');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = label;
+  }
+}
+
 function higherScoredProducts(currentId, limit){
   limit = limit || 5;
   const others = Object.keys(PRODUCTS).filter(id => id !== currentId);
@@ -2343,17 +2390,28 @@ function renderLiveUnverified(live){
 
   const est = heuristicScore(live.caption, live.product);
   const screenshot = live.source === 'screenshot';
+  const brand = live.source === 'brand';
+  const noCreator = screenshot || brand;                 // no TikTok author to show
 
   const identified = live.product && (live.product.product || live.product.company);
-  const header = screenshot
+  const cleanQuery = (live.query || '').replace(/"/g, '');
+  const ncTitle = brand
+    ? (identified ? 'Matched to your search' : 'From your search')
+    : (identified ? 'Identified from your image' : 'From your screenshot');
+  const ncSub = brand
+    ? (identified ? 'The closest real product we found' + (cleanQuery ? ' for “' + cleanQuery + '”.' : '.') : 'We searched public sources for your term.')
+    : (identified ? 'We read the product below straight off your uploaded image.' : 'Product read from the image you uploaded');
+  const ncTag = brand ? 'From your search' : 'From your image';
+
+  const header = noCreator
     ? '<div class="row-between" style="align-items:flex-start;">' +
         '<div style="display:flex;flex-direction:column;gap:2px;min-width:0;">' +
-          '<span class="review-name">' + (identified ? 'Identified from your image' : 'From your screenshot') + '</span>' +
-          '<span class="helpful">' + (identified ? 'We read the product below straight off your uploaded image.' : 'Product read from the image you uploaded') + '</span>' +
+          '<span class="review-name">' + ncTitle + '</span>' +
+          '<span class="helpful">' + ncSub + '</span>' +
         '</div>' +
         '<div class="score-bubble ' + (est ? 'sb-' + est.scoreTone : 'sb-gray') + '">' + (est ? est.score : '—') + '</div>' +
       '</div>' +
-      '<div class="tag-row">' + pill('From your image', 'gray') + pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') + '</div>'
+      '<div class="tag-row">' + pill(ncTag, 'gray') + pill(est ? 'Early estimate' : 'Not yet evidence-checked', 'gray') + '</div>'
     : '<div class="row-between" style="align-items:flex-start;">' +
         '<div style="display:flex;gap:11px;min-width:0;">' +
           (live.avatar ? '<img class="live-avatar" src="' + live.avatar + '" alt="" onerror="this.remove()" />' : '') +
@@ -2375,7 +2433,7 @@ function renderLiveUnverified(live){
     header +
     (live.thumbnail ? '<div class="post-photo"><img src="' + live.thumbnail + '" alt="uploaded" onerror="this.remove()" /></div>' : '') +
     productCardHtml(live.product) +
-    (screenshot && !live.caption ? '' :
+    (noCreator && !live.caption ? '' :
       '<span class="section-label" style="margin-top:2px;">What the creator claims</span>' +
       '<div class="quote-box">"' + (live.caption || '').replace(/^"|"$/g, '') + '"</div>');
 
