@@ -376,6 +376,34 @@
     opacity:0;pointer-events:none;transition:opacity 0.2s ease, transform 0.2s ease;z-index:50;
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  /* ---- Onboarding: splash / sign-in + intro slides, then into the app ---- */
+  .onboard{position:absolute;inset:0;z-index:60;display:none;background:#F4E8FF;overflow:hidden;}
+  .onboard.show{display:block;}
+  .ob-slide{position:absolute;inset:0;display:none;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 30px) 28px calc(env(safe-area-inset-bottom) + 30px);}
+  .ob-slide.active{display:flex;}
+  .ob-center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;gap:16px;}
+  /* Sign-in / splash */
+  .ob-login{background:radial-gradient(120% 70% at 50% 12%, #F7EDFF 0%, #F1E2FB 60%, #EFDEF9 100%);}
+  .ob-mark{display:flex;flex-direction:column;align-items:center;gap:14px;}
+  .ob-flower{width:118px;height:auto;display:block;}
+  .ob-word{width:150px;height:auto;display:block;}
+  .ob-tag{font-size:15px;color:#4A423B;font-weight:400;letter-spacing:-0.005em;}
+  /* Intro slides */
+  .ob-info{background:linear-gradient(180deg,#F4E8FF 0%, #F7EFF7 32%, var(--app-bg) 68%);}
+  .ob-skip{position:absolute;top:calc(env(safe-area-inset-top) + 22px);right:26px;background:none;border:none;
+    font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:4px;z-index:2;}
+  .ob-ico{width:92px;height:92px;border-radius:26px;background:#fff;display:flex;align-items:center;
+    justify-content:center;font-size:42px;box-shadow:0 10px 30px rgba(70,45,150,.13);margin-bottom:16px;}
+  .ob-head{font-family:var(--font-display);font-size:29px;line-height:1.12;font-weight:600;color:var(--text);
+    margin:0;letter-spacing:-0.018em;max-width:14ch;text-wrap:balance;}
+  .ob-body{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:31ch;margin:0;}
+  .ob-foot{display:flex;flex-direction:column;gap:20px;}
+  .ob-dots{display:flex;justify-content:center;gap:7px;}
+  .ob-dots i{width:7px;height:7px;border-radius:50%;background:rgba(28,25,23,.16);transition:all .2s ease;}
+  .ob-dots i.on{background:var(--brand);width:22px;border-radius:4px;}
 </style>
 </head>
 <body>
@@ -570,11 +598,66 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>
       <span>Shop</span>
     </button>
-    <button class="tab" onclick="showToast('Your profile — coming soon')">
+    <button class="tab" onclick="signOut()">
       <span class="tab-avatar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.4"/><path d="M5.5 19a6.5 6.5 0 0 1 13 0"/></svg></span>
       <span>You</span>
     </button>
   </nav>
+
+  <!-- ONBOARDING: sign-in splash + intro, shown on load and after sign-out -->
+  <div class="onboard show" id="onboard">
+
+    <div class="ob-slide ob-login active" data-slide="0">
+      <div class="ob-center">
+        <div class="ob-mark">
+          <img class="ob-flower" src="images/vera-icon-logo.svg" alt="" />
+          <img class="ob-word" src="images/Vera.svg" alt="Vera" />
+          <div class="ob-tag">The truth behind the hype</div>
+        </div>
+      </div>
+      <button class="btn-primary" onclick="obNext()">Sign In</button>
+    </div>
+
+    <div class="ob-slide ob-info" data-slide="1">
+      <button class="ob-skip" onclick="obFinish()">Skip</button>
+      <div class="ob-center">
+        <div class="ob-ico" aria-hidden="true">📱</div>
+        <h2 class="ob-head">Wellness runs on hype.</h2>
+        <p class="ob-body">Supplements are one of TikTok's biggest categories, and most of what you're sold was never properly tested. It's hard to know what is actually true.</p>
+      </div>
+      <div class="ob-foot">
+        <div class="ob-dots"><i class="on"></i><i></i><i></i></div>
+        <button class="btn-primary" onclick="obNext()">Continue</button>
+      </div>
+    </div>
+
+    <div class="ob-slide ob-info" data-slide="2">
+      <button class="ob-skip" onclick="obFinish()">Skip</button>
+      <div class="ob-center">
+        <div class="ob-ico" aria-hidden="true">⚖️</div>
+        <h2 class="ob-head">Score the claim, not the influencer.</h2>
+        <p class="ob-body">Paste a link, upload a screenshot, or search a brand. Vera finds the real product behind the post and weighs its promises against the research.</p>
+      </div>
+      <div class="ob-foot">
+        <div class="ob-dots"><i></i><i class="on"></i><i></i></div>
+        <button class="btn-primary" onclick="obNext()">Continue</button>
+      </div>
+    </div>
+
+    <div class="ob-slide ob-info" data-slide="3">
+      <button class="ob-skip" onclick="obFinish()">Skip</button>
+      <div class="ob-center">
+        <div class="ob-ico" aria-hidden="true">🔬</div>
+        <h2 class="ob-head">Real evidence, in plain words.</h2>
+        <p class="ob-body">See what the studies actually say, with live sources you can open. No miracle promises, just an honest read you can trust.</p>
+      </div>
+      <div class="ob-foot">
+        <div class="ob-dots"><i></i><i></i><i class="on"></i></div>
+        <button class="btn-primary" onclick="obNext()">Get started</button>
+      </div>
+    </div>
+
+  </div>
 
 </div>
 </div>
@@ -1936,6 +2019,42 @@ function show(screenId){
 function goHome(){
   screenStack = ['screen-home'];
   show('screen-home');
+}
+
+// ---- Onboarding: sign-in splash -> intro slides -> into the app ----
+// obIndex 0 = sign-in, 1..3 = intro slides. The overlay covers the whole phone
+// (including the tab bar) until the user finishes or skips.
+let obIndex = 0;
+function renderOnboard(){
+  document.querySelectorAll('.ob-slide').forEach(s => {
+    s.classList.toggle('active', Number(s.dataset.slide) === obIndex);
+  });
+  const ob = document.getElementById('onboard');
+  if (ob) ob.scrollTop = 0;
+}
+function obNext(){
+  if (obIndex >= 3){ obFinish(); return; }   // last slide -> enter the app
+  obIndex++;
+  renderOnboard();
+}
+function obFinish(){
+  const ob = document.getElementById('onboard');
+  if (ob) ob.classList.remove('show');
+  obIndex = 0;
+  renderOnboard();
+}
+function showOnboard(n){
+  obIndex = n || 0;
+  const ob = document.getElementById('onboard');
+  if (ob) ob.classList.add('show');
+  renderOnboard();
+}
+// "You" tab: sign out and loop back to the sign-in splash (demo reset).
+function signOut(){
+  goHome();
+  showInputTab('link');
+  showOnboard(0);
+  showToast('Signed out');
 }
 
 function openCheck(id){
