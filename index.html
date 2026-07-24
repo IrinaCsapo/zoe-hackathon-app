@@ -395,8 +395,7 @@
   .ob-info{background:linear-gradient(180deg,#F4E8FF 0%, #F7EFF7 32%, var(--app-bg) 68%);}
   .ob-skip{position:absolute;top:calc(env(safe-area-inset-top) + 22px);right:26px;background:none;border:none;
     font-size:13px;font-weight:600;color:var(--text-secondary);cursor:pointer;padding:4px;z-index:2;}
-  .ob-ico{width:92px;height:92px;border-radius:26px;background:#fff;display:flex;align-items:center;
-    justify-content:center;font-size:42px;box-shadow:0 10px 30px rgba(70,45,150,.13);margin-bottom:16px;}
+  .ob-art{height:186px;width:auto;display:block;margin-bottom:10px;}
   .ob-head{font-family:var(--font-display);font-size:29px;line-height:1.12;font-weight:600;color:var(--text);
     margin:0;letter-spacing:-0.018em;max-width:14ch;text-wrap:balance;}
   .ob-body{font-size:15px;line-height:1.6;color:var(--text-secondary);max-width:31ch;margin:0;}
@@ -604,8 +603,9 @@
     </button>
   </nav>
 
-  <!-- ONBOARDING: sign-in splash + intro, shown on load and after sign-out -->
-  <div class="onboard show" id="onboard">
+  <!-- ONBOARDING: sign-in splash + intro. Shown only on a browser's first visit
+       (and after sign-out); returning visits skip straight to the app. -->
+  <div class="onboard" id="onboard">
 
     <div class="ob-slide ob-login active" data-slide="0">
       <div class="ob-center">
@@ -621,7 +621,7 @@
     <div class="ob-slide ob-info" data-slide="1">
       <button class="ob-skip" onclick="obFinish()">Skip</button>
       <div class="ob-center">
-        <div class="ob-ico" aria-hidden="true">📱</div>
+        <img class="ob-art" src="images/Icon-1.svg" alt="" aria-hidden="true" />
         <h2 class="ob-head">Wellness runs on hype.</h2>
         <p class="ob-body">Supplements are one of TikTok's biggest categories, and most of what you're sold was never properly tested. It's hard to know what is actually true.</p>
       </div>
@@ -634,7 +634,7 @@
     <div class="ob-slide ob-info" data-slide="2">
       <button class="ob-skip" onclick="obFinish()">Skip</button>
       <div class="ob-center">
-        <div class="ob-ico" aria-hidden="true">⚖️</div>
+        <img class="ob-art" src="images/Icon-2.svg" alt="" aria-hidden="true" />
         <h2 class="ob-head">Score the claim, not the influencer.</h2>
         <p class="ob-body">Paste a link, upload a screenshot, or search a brand. Vera finds the real product behind the post and weighs its promises against the research.</p>
       </div>
@@ -647,7 +647,7 @@
     <div class="ob-slide ob-info" data-slide="3">
       <button class="ob-skip" onclick="obFinish()">Skip</button>
       <div class="ob-center">
-        <div class="ob-ico" aria-hidden="true">🔬</div>
+        <img class="ob-art" src="images/Icon-3.svg" alt="" aria-hidden="true" />
         <h2 class="ob-head">Real evidence, in plain words.</h2>
         <p class="ob-body">See what the studies actually say, with live sources you can open. No miracle promises, just an honest read you can trust.</p>
       </div>
@@ -658,6 +658,17 @@
     </div>
 
   </div>
+
+  <!-- First-visit gate: run synchronously (before paint) so returning visitors
+       never see the sign-in splash flash on refresh. -->
+  <script>
+    (function(){
+      var on;
+      try { on = !!localStorage.getItem('vera_onboarded'); }
+      catch (e) { on = false; }
+      if (!on) document.getElementById('onboard').classList.add('show');
+    })();
+  </script>
 
 </div>
 </div>
@@ -2037,11 +2048,20 @@ function obNext(){
   obIndex++;
   renderOnboard();
 }
+// Remember, per browser, that this visitor has been through the splash, so a
+// refresh lands straight on the app instead of the sign-in screen again.
+function setOnboarded(done){
+  try {
+    if (done) localStorage.setItem('vera_onboarded', '1');
+    else localStorage.removeItem('vera_onboarded');
+  } catch (e) {}
+}
 function obFinish(){
   const ob = document.getElementById('onboard');
   if (ob) ob.classList.remove('show');
   obIndex = 0;
   renderOnboard();
+  setOnboarded(true);
 }
 function showOnboard(n){
   obIndex = n || 0;
@@ -2051,6 +2071,7 @@ function showOnboard(n){
 }
 // "You" tab: sign out and loop back to the sign-in splash (demo reset).
 function signOut(){
+  setOnboarded(false);   // sign back out, so a refresh shows the splash again
   goHome();
   showInputTab('link');
   showOnboard(0);
