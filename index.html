@@ -957,7 +957,7 @@ const PRODUCTS = {
   },
   creatinegummies: {
     brand: "PeakForm",
-    name: "Creatine Gummy Bears",
+    name: "2 in 1 Creatine & Collagen Gummies",
     price: "£24.00 · 30 servings",
     priceValue: 24, servings: 30, currency: "£", artShape: "jar",
     emoji: "🐻",
@@ -1309,7 +1309,7 @@ function imgFallback(imgEl){
 // itself and the art shows through — so the UI is never broken. Generate the
 // photos with scripts/generate-images.mjs (Replicate flux-schnell).
 function photoOverlay(id, alt){
-  return '<img class="photo-overlay" src="images/' + id + '.jpg" alt="' +
+  return '<img class="photo-overlay" src="images/' + id + '.webp" alt="' +
     String(alt || '').replace(/"/g, '') + '" loading="lazy" onerror="this.remove()" />';
 }
 
