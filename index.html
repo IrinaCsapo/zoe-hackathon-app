@@ -416,6 +416,16 @@
   .ob-dots{display:flex;justify-content:center;gap:7px;}
   .ob-dots i{width:7px;height:7px;border-radius:50%;background:rgba(28,25,23,.16);transition:all .2s ease;}
   .ob-dots i.on{background:var(--brand);width:22px;border-radius:4px;}
+
+  /* On a real phone the browser already provides its own status bar and toolbar,
+     so the mocked-up phone status bar and floating tab bar read as duplicates.
+     Below the phone-frame breakpoint (every handset), hide them and reclaim the
+     space. Desktop and tablet keep the full phone mockup. */
+  @media (max-width:460px){
+    .statusbar{display:none;}
+    .tabbar{display:none;}
+    .screen{padding-bottom:max(26px, env(safe-area-inset-bottom));}
+  }
 </style>
 </head>
 <body>
