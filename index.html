@@ -301,7 +301,7 @@
   .brand-label{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--brand);}
   .product-name{font-family:var(--font-display);font-size:23px;font-weight:600;letter-spacing:-0.01em;line-height:1.15;}
   .price-row{font-size:13px;color:var(--text-secondary);}
-  .rating-summary{display:flex;gap:20px;align-items:center;}
+  .rating-summary{display:flex;gap:20px;align-items:center;justify-content:center;}
   .big-num{font-family:var(--font-display);font-size:32px;font-weight:600;line-height:1;}
   .stars{display:flex;gap:1px;}
   .star{font-size:12px;color:var(--star);}
@@ -593,7 +593,6 @@
         <div class="stars" id="p-avgStars"></div>
         <span class="helpful" id="p-count"></span>
       </div>
-      <div class="bars" id="p-bars"></div>
     </div>
 
     <button class="btn-secondary" onclick="showToast('Reviews open once your account is set up')">Write a review</button>
@@ -2031,9 +2030,6 @@ function renderProduct(id){
   document.getElementById('p-avg').textContent = p.avgRating.toFixed(1);
   document.getElementById('p-avgStars').innerHTML = starsHtml(p.avgRating, 12);
   document.getElementById('p-count').textContent = p.reviewCount + ' reviews';
-  document.getElementById('p-bars').innerHTML = [5,4,3,2,1].map((label, i) =>
-    '<div class="bar-row"><span>' + label + '</span><div class="bar-track"><div class="bar-fill" style="width:' + p.barPcts[i] + '%;"></div></div></div>'
-  ).join('');
 
   document.getElementById('p-reviewCard').innerHTML = reviewHtml(p.review);
 }
