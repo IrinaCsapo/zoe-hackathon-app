@@ -60,6 +60,24 @@ function toBase64(buf) {
   return btoa(binary);
 }
 
+// Fetch the cover and return it as a self-contained data: URI. TikTok's CDN blocks
+// hotlinking and signs its URLs, so the browser can't load the cover directly — but
+// the Worker can (server-side, with a tiktok.com referer), and an embedded data URI
+// then always renders in the app. Returns '' on failure (app shows the play fallback).
+async function imageDataUri(url) {
+  if (!url) return '';
+  try {
+    const r = await fetchT(url, { headers: { 'User-Agent': UA, 'Referer': 'https://www.tiktok.com/' } }, 8000);
+    if (!r.ok) return '';
+    const buf = await r.arrayBuffer();
+    if (buf.byteLength > 2500000) return '';
+    const mime = r.headers.get('content-type') || 'image/jpeg';
+    return 'data:' + mime + ';base64,' + toBase64(buf);
+  } catch (e) {
+    return '';
+  }
+}
+
 // Fetch the cover image and return it as a Gemini inline_data part, so the model
 // can read a brand/product name off the packaging when the caption doesn't say it.
 async function imagePart(thumbnail) {
@@ -261,6 +279,9 @@ export default {
 
       let thumbnail = urlOf(video.cover) || urlOf(video.originCover) || urlOf(video.dynamicCover);
       if (!thumbnail) thumbnail = await oembedThumb(link);
+      // Embed the cover as a data URI so the app can show it — a raw TikTok CDN URL
+      // won't load in the browser (hotlink protection). Falls back to the raw URL.
+      const thumbnailEmbedded = await imageDataUri(thumbnail);
 
       // Note: heartCount (likes) is intentionally omitted.
       const out = {
@@ -270,7 +291,7 @@ export default {
         bio: (author.signature || '').replace(/\s+/g, ' ').trim(),
         avatar: urlOf(author.avatarThumb) || urlOf(author.avatarMedium),
         caption: (item.desc || '').replace(/\s+/g, ' ').trim(),
-        thumbnail,
+        thumbnail: thumbnailEmbedded || thumbnail,
         followerCount: typeof stats.followerCount === 'number' ? stats.followerCount : null,
         postDate: item.createTime ? Number(item.createTime) : null,
         paidPartnership: item.isAd === true,
