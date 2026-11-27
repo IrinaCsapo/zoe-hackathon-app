@@ -1658,7 +1658,7 @@ function renderRecent(){
   el.innerHTML = list.map(r => {
     const p = PRODUCTS[r.id];
     if (!p) return '';
-    const sub = r.mode === 'check' ? (p.post.handle + ' · ' + p.post.platform) : (p.brand + ' · product page');
+    const sub = r.mode === 'check' ? (p.post.handle + ' · ' + p.post.platform) : (p.brand + ' · Company Product');
     const action = r.mode === 'check' ? "openCheck('" + r.id + "')" : "openProductDirect('" + r.id + "')";
     return '<button class="hscroll-card" onclick="' + action + '">' +
       '<div class="hscroll-thumb">' + productArtSvg(p) + photoOverlay(r.id, p.name) + '</div>' +
