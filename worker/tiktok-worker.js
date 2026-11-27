@@ -179,19 +179,15 @@ async function identifyProduct(hint, img, key) {
     return null;
   }
 
-  // Only the FIRST (proven-working) model does the slow web-grounded pass, which
-  // adds sources; every model gets the fast ungrounded pass. This caps the number
-  // of Gemini calls per lookup (grounded search across all 5 models was what made
-  // a single lookup take 60s+ once the top models started returning 503/429).
-  // First response that yields VALID product JSON wins.
+  // Ungrounded only: one Gemini call per model, first valid product JSON wins. We
+  // deliberately skip the web-grounded (google_search) pass — on the free tier it has
+  // a much tighter, separate rate limit that was the main cause of lookups failing.
+  // In the common case this is a SINGLE call to the first working model. Evidence
+  // sourcing is still covered by the OpenAlex "See the research" link in the app.
   for (let i = 0; i < GEMINI_MODELS.length; i++) {
-    const model = GEMINI_MODELS[i];
-    const modes = i === 0 ? [true, false] : [false];
-    for (const grounded of modes) {
-      const data = await ask(model, grounded);
-      const out = data && parseProduct(data);
-      if (out) return out;
-    }
+    const data = await ask(GEMINI_MODELS[i], false);
+    const out = data && parseProduct(data);
+    if (out) return out;
   }
   return null;
 }
@@ -313,7 +309,7 @@ export default {
       // Only cache a fully-identified result. Never cache a null product (that was
       // likely a transient rate-limit miss) — otherwise one throttled lookup would
       // stick for an hour. A good result is cached for 1h.
-      if (out.product) headers['Cache-Control'] = 'public, max-age=3600';
+      if (out.product) headers['Cache-Control'] = 'public, max-age=86400';
       const resp = new Response(JSON.stringify(out), { status: 200, headers });
       if (out.product && ctx && ctx.waitUntil) ctx.waitUntil(cache.put(cacheKey, resp.clone()));
       return resp;
