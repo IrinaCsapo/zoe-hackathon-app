@@ -316,7 +316,7 @@
   .research-cta .rc-arrow{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease;}
   .research-cta:hover .rc-arrow{transform:translateX(2px);}
   .hscroll{display:flex;gap:13px;overflow-x:auto;padding:4px 2px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
-    scroll-snap-type:x mandatory;scroll-padding-left:2px;}
+    scroll-snap-type:x proximity;scroll-padding-left:2px;overscroll-behavior-x:contain;}
   .hscroll::-webkit-scrollbar{display:none;}
   .hscroll-card{flex:0 0 auto;width:182px;scroll-snap-align:start;background:var(--surface);border:1px solid var(--border);
     border-radius:20px;padding:12px;display:flex;flex-direction:column;gap:9px;cursor:pointer;text-align:left;
@@ -2856,13 +2856,10 @@ function enableHScroll(){
     if (el.dataset.hscrollBound) return;
     el.dataset.hscrollBound = '1';
 
-    el.addEventListener('wheel', function(e){
-      if (el.scrollWidth <= el.clientWidth) return;
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)){
-        el.scrollLeft += e.deltaY;
-        e.preventDefault();
-      }
-    }, { passive: false });
+    // NOTE: deliberately no wheel->horizontal mapping. Converting a vertical mouse
+    // wheel into horizontal rail scroll (and preventDefault) hijacks the page scroll
+    // whenever the cursor is over a card, which feels broken. Rails still scroll
+    // horizontally via trackpad swipe (deltaX), click-drag below, and touch.
 
     let down = false, startX = 0, startLeft = 0, moved = false;
     el.addEventListener('pointerdown', function(e){
