@@ -207,7 +207,7 @@ async function productSummary(caption, thumbnail, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
     // Screenshot upload: identify a product straight from an uploaded image.
@@ -264,6 +264,17 @@ export default {
       return json({ error: 'Pass a TikTok link as ?url=' }, 400);
     }
 
+    // Cache successful lookups by the post's canonical path (ignoring tracking
+    // params like ?q=&t=), so re-checking the same link during a demo is instant
+    // and makes ZERO Gemini calls — the single biggest relief for the free-tier
+    // rate limit. Only fully-identified results are cached (see below).
+    const cache = caches.default;
+    let canonical = link;
+    try { const u = new URL(link); canonical = u.origin + u.pathname; } catch (e) {}
+    const cacheKey = new Request('https://vera-cache/' + encodeURIComponent(canonical));
+    const cached = await cache.match(cacheKey);
+    if (cached) return cached;
+
     try {
       const res = await fetchT(link, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9' } }, 12000);
       const html = await res.text();
@@ -297,7 +308,15 @@ export default {
         paidPartnership: item.isAd === true,
       };
       out.product = await productSummary(out.caption, out.thumbnail, env); // real product data (from caption + cover image), or null
-      return json(out);
+
+      const headers = { 'Content-Type': 'application/json', ...CORS };
+      // Only cache a fully-identified result. Never cache a null product (that was
+      // likely a transient rate-limit miss) — otherwise one throttled lookup would
+      // stick for an hour. A good result is cached for 1h.
+      if (out.product) headers['Cache-Control'] = 'public, max-age=3600';
+      const resp = new Response(JSON.stringify(out), { status: 200, headers });
+      if (out.product && ctx && ctx.waitUntil) ctx.waitUntil(cache.put(cacheKey, resp.clone()));
+      return resp;
     } catch (e) {
       return json({ error: String(e && e.message || e) }, 500);
     }
