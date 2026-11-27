@@ -302,9 +302,19 @@
   .claim-note{font-size:11.5px;color:var(--text-secondary);line-height:1.4;}
   .divider{height:1px;background:var(--border);}
   .link-out{font-size:12px;font-weight:700;color:var(--brand-dark);text-decoration:none;}
-  .source-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .source-count{display:none;font-size:11px;color:var(--text-muted);}
+  .source-row{display:flex;flex-direction:column;align-items:flex-start;gap:9px;}
+  .source-count{display:none;font-size:11.5px;color:var(--text-muted);padding-left:2px;}
   .source-count.show{display:inline;}
+  /* Standout CTA that opens the underlying peer-reviewed research. */
+  .research-cta{display:inline-flex;align-items:center;gap:8px;text-decoration:none;cursor:pointer;
+    background:var(--brand-light);color:var(--brand-dark);border:1px solid rgba(109,69,224,.26);
+    border-radius:13px;padding:11px 15px;font-size:13.5px;font-weight:700;letter-spacing:-0.015em;
+    transition:background .15s ease,border-color .15s ease,transform .1s ease;}
+  .research-cta:hover{background:#EBE2FB;border-color:var(--brand);}
+  .research-cta:active{transform:scale(.99);}
+  .research-cta .rc-ico{width:17px;height:17px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+  .research-cta .rc-arrow{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s ease;}
+  .research-cta:hover .rc-arrow{transform:translateX(2px);}
   .hscroll{display:flex;gap:13px;overflow-x:auto;padding:4px 2px 12px;-webkit-overflow-scrolling:touch;scrollbar-width:none;
     scroll-snap-type:x mandatory;scroll-padding-left:2px;}
   .hscroll::-webkit-scrollbar{display:none;}
@@ -1334,7 +1344,11 @@ function openAlexSearchUrl(query){
 
 function sourceRowHtml(p, countId){
   return '<div class="source-row">' +
-    '<a class="link-out" href="' + openAlexSearchUrl(p.sourceQuery) + '" target="_blank" rel="noopener">See sources on OpenAlex →</a>' +
+    '<a class="research-cta" href="' + openAlexSearchUrl(p.sourceQuery) + '" target="_blank" rel="noopener">' +
+      '<svg class="rc-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>' +
+      'See the research' +
+      '<svg class="rc-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/></svg>' +
+    '</a>' +
     '<span class="source-count" id="' + countId + '"></span>' +
   '</div>';
 }
@@ -1349,7 +1363,7 @@ async function loadStudyCount(product, targetId){
     const data = await res.json();
     const count = data && data.meta && typeof data.meta.count === 'number' ? data.meta.count : null;
     if (count !== null && document.getElementById(targetId)){
-      el.textContent = count.toLocaleString() + ' related studies on OpenAlex';
+      el.textContent = 'Based on ' + count.toLocaleString() + ' peer-reviewed studies';
       el.classList.add('show');
     }
   } catch (e) {
@@ -2025,7 +2039,7 @@ function renderUnverifiedCheck(fullText, imageUrl){
 
   lastLiveSourceQuery = supplementQueryFromCaption(lastUnverifiedQuery || fullText || '');
   const cta = document.getElementById('checkCta');
-  if (cta) cta.textContent = 'See the research on OpenAlex →';
+  if (cta) cta.textContent = 'See the research →';
 }
 
 function openUnverifiedCheck(fullText, imageUrl){
@@ -2784,7 +2798,7 @@ function renderLiveUnverified(live){
     || supplementQueryFromCaption((live.product && live.product.product) || live.query || live.caption || '');
 
   const cta = document.getElementById('checkCta');
-  if (cta) cta.textContent = 'See the research on OpenAlex →';
+  if (cta) cta.textContent = 'See the research →';
 }
 
 async function checkPastedLink(){
