@@ -21,8 +21,13 @@
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
 
-// Tried in order until one has free-tier quota (some models return limit:0/404).
-const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-2.0-flash'];
+// Tried in order until one answers. Models get retired (404) or overloaded (503),
+// so keep several current fallbacks here. Verify what this key can use at
+// /?debug=gemini (the `available` list), then put a working one first.
+// gemini-flash-lite-latest is the one verified 200 at /?debug=gemini (2026-11-10);
+// flash-latest and pro-latest were only 429 (rate limited, transient) so they stay
+// as fallbacks; the 2.5-* ids 404 on this key, kept last just in case they return.
+const GEMINI_MODELS = ['gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'];
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -31,6 +36,19 @@ const CORS = {
 };
 
 const urlOf = (v) => (typeof v === 'string' ? v : (v && v.urlList && v.urlList[0]) || '');
+
+// fetch with a hard timeout. Without this, a stalled TikTok CDN image or a hanging
+// Gemini call blocks the whole request until the browser gives up (the real
+// "links stopped working" bug: the pipeline hung, it didn't error). Aborts cleanly.
+async function fetchT(url, opts, ms) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...(opts || {}), signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 // Base64-encode an ArrayBuffer in chunks (btoa + full spread overflows on big images).
 function toBase64(buf) {
@@ -47,7 +65,7 @@ function toBase64(buf) {
 async function imagePart(thumbnail) {
   if (!thumbnail) return null;
   try {
-    const r = await fetch(thumbnail);
+    const r = await fetchT(thumbnail, null, 8000);
     if (!r.ok) return null;
     const buf = await r.arrayBuffer();
     if (buf.byteLength > 4000000) return null;
@@ -66,7 +84,7 @@ function json(obj, status = 200) {
 
 async function oembedThumb(link) {
   try {
-    const r = await fetch('https://www.tiktok.com/oembed?url=' + encodeURIComponent(link));
+    const r = await fetchT('https://www.tiktok.com/oembed?url=' + encodeURIComponent(link), null, 8000);
     if (!r.ok) return '';
     const d = await r.json();
     return d.thumbnail_url || '';
@@ -124,23 +142,34 @@ async function identifyProduct(hint, img, key) {
     const parts = img ? [{ text: prompt }, img] : [{ text: prompt }];
     const body = { contents: [{ parts }] };
     if (grounded) body.tools = [{ google_search: {} }];
-    try {
-      const res = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key,
-        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-      );
-      if (!res.ok) return null;
-      return await res.json();
-    } catch (e) {
-      return null;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key;
+    // 503 (overloaded) and 429 (rate limited) are transient: retry once before giving up.
+    // Each call is capped (grounded search is slower, so it gets longer) so a hung
+    // upstream can never stall the whole lookup. A timeout aborts (throws) -> caught.
+    const cap = grounded ? 16000 : 10000;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetchT(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }, cap);
+        if (res.ok) return await res.json();
+        if ((res.status === 503 || res.status === 429) && attempt === 0) { await new Promise((r) => setTimeout(r, 700)); continue; }
+        return null;
+      } catch (e) {
+        if (attempt === 0) { await new Promise((r) => setTimeout(r, 400)); continue; }
+        return null;
+      }
     }
+    return null;
   }
 
-  // For each model, try web-grounded first (adds sources) then ungrounded; the
-  // first response that yields VALID product JSON wins. Grounded replies often
-  // wrap prose around the JSON, so the ungrounded pass is the clean fallback.
-  for (const model of GEMINI_MODELS) {
-    for (const grounded of [true, false]) {
+  // Only the FIRST (proven-working) model does the slow web-grounded pass, which
+  // adds sources; every model gets the fast ungrounded pass. This caps the number
+  // of Gemini calls per lookup (grounded search across all 5 models was what made
+  // a single lookup take 60s+ once the top models started returning 503/429).
+  // First response that yields VALID product JSON wins.
+  for (let i = 0; i < GEMINI_MODELS.length; i++) {
+    const model = GEMINI_MODELS[i];
+    const modes = i === 0 ? [true, false] : [false];
+    for (const grounded of modes) {
       const data = await ask(model, grounded);
       const out = data && parseProduct(data);
       if (out) return out;
@@ -175,12 +204,24 @@ export default {
       return json({ product });
     }
 
-    // Temporary diagnostic: /?debug=gemini reports which models have quota
-    // (200 = works, 429 = no free quota, 404 = model unavailable). Never the key.
+    // Temporary diagnostic: /?debug=gemini reports the models this key can use.
+    // `available` = every model that supports generateContent (the source of truth
+    // for what to put in GEMINI_MODELS). `chain` = live status of each model we try
+    // (200 works, 404 retired, 503 overloaded, 429 rate limited). Never the key.
     if (new URL(request.url).searchParams.get('debug') === 'gemini') {
       const key = env && env.GEMINI_API_KEY;
       if (!key) return json({ keyPresent: false, note: 'GEMINI_API_KEY secret is not set on this Worker.' });
-      const models = {};
+      let available = null, listError = null;
+      try {
+        const lr = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000&key=' + key);
+        if (lr.ok) {
+          const ld = await lr.json();
+          available = (ld.models || [])
+            .filter((m) => (m.supportedGenerationMethods || []).indexOf('generateContent') !== -1)
+            .map((m) => (m.name || '').replace('models/', ''));
+        } else { listError = lr.status; }
+      } catch (e) { listError = String((e && e.message) || e); }
+      const chain = {};
       let sample = null;
       const testPrompt = productPrompt('Bloom Creatine Gummies by Bloom Nutrition');
       for (const m of GEMINI_MODELS) {
@@ -189,15 +230,15 @@ export default {
             'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + key,
             { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: testPrompt }] }] }) }
           );
-          models[m] = r.status;
+          chain[m] = r.status;
           if (r.ok && !sample) {
             const d = await r.json();
             const parts = (((d.candidates || [])[0] || {}).content || {}).parts || [];
-            sample = { model: m, text: parts.map((p) => p.text || '').join('').slice(0, 500) };
+            sample = { model: m, text: parts.map((p) => p.text || '').join('').slice(0, 300) };
           }
-        } catch (e) { models[m] = 'error'; }
+        } catch (e) { chain[m] = 'error'; }
       }
-      return json({ v: 5, keyPresent: true, models, sample });
+      return json({ v: 6, keyPresent: true, chain, available, listError, sample });
     }
 
     const link = new URL(request.url).searchParams.get('url');
@@ -206,7 +247,7 @@ export default {
     }
 
     try {
-      const res = await fetch(link, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9' } });
+      const res = await fetchT(link, { headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9' } }, 12000);
       const html = await res.text();
       const m = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>(.*?)<\/script>/s);
       if (!m) return json({ error: 'Could not read the post (TikTok may have blocked the request)' }, 502);
